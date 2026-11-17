@@ -1,11 +1,13 @@
-# Enable stateless CSRF protection for forms and logins/logouts
+# Protection CSRF classique, adossée à la session.
+#
+# La recette Flex active par défaut des jetons « stateless » qui dépendent d'un contrôleur Stimulus
+# (data-controller="csrf-protection") : Stimulus est interdit dans forms_front (specs_tech §5.1.1).
+# Chaque formulaire garde donc son propre identifiant de jeton (ContactType : « contact »).
 framework:
+    csrf_protection:
+        enabled: true
     form:
         csrf_protection:
-            token_id: submit
-
-    csrf_protection:
-        stateless_token_ids:
-            - submit
-            - authenticate
-            - logout
+            enabled: true
+            # Symfony ajoute par défaut data-controller="csrf-protection" au champ caché : aucun attribut ici
+            field_attr: []

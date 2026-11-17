@@ -1,0 +1,29 @@
+{#
+  Onglets de démonstration des 7 types de questions (assets/ts/components/tabs.ts).
+  Sans JavaScript, les sept panneaux sont affichés les uns sous les autres.
+#}
+{% set types = [
+    { id: 'texte', label: 'Texte', title: 'Zone de texte', text: 'Réponse courte ou longue, avec longueur minimale et maximale. Les verbatims sont recherchables par mot-clé dans les statistiques.', demo: '<label>Qu\'est-ce qui faciliterait votre travail ?</label><span class="demo-input demo-input--area">Un outil unique pour les demandes internes…</span>' },
+    { id: 'chiffres', label: 'Chiffres', title: 'Chiffres', text: 'Entier ou décimal, virgule ou point, bornes et unité (€, kg, %, ans). Statistiques : moyenne, médiane, écart-type, histogramme.', demo: '<label>Montant du financement recherché</label><span class="demo-input">45 000 <em>€</em></span>' },
+    { id: 'choix', label: 'Choix', title: 'Choix', text: 'Boutons radio, cases à cocher ou liste déroulante. Décompte et pourcentage par option, triables.', demo: '<label>Quels outils utilisez-vous chaque jour ?</label><span class="demo-check is-on">Visioconférence</span><span class="demo-check is-on">Messagerie instantanée</span><span class="demo-check">Intranet</span>' },
+    { id: 'oui-non', label: 'Oui / Non', title: 'Oui / Non', text: 'Choix binaire en deux boutons ou en interrupteur, libellés Oui / Non, Vrai / Faux ou personnalisés, valeur par défaut au choix. Effectifs et pourcentages des deux réponses.', demo: '<label>Êtes-vous satisfait(e) de votre poste actuel ?</label><span class="demo-check is-on">Oui</span><span class="demo-check">Non</span>' },
+    { id: 'echelle', label: 'Échelle', title: 'Échelle', text: 'Curseur sur une échelle (note de 0 à 10, pourcentage…) ou sur des valeurs personnalisées, libellés aux extrémités, valeur affichée en grand. Moyenne, médiane et répartition par cran.', demo: '<label>Recommanderiez-vous ce service à votre entourage ?</label><span class="demo-input">8/10</span>' },
+    { id: 'date', label: 'Date', title: 'Date', text: 'Sélecteur de date avec date minimale et maximale. Plus ancienne, plus récente, médiane et distribution chronologique.', demo: '<label>Date d\'arrivée souhaitée</label><span class="demo-input">12/01/2027</span>' },
+    { id: 'fichier', label: 'Fichier', title: 'Fichier', text: 'Glisser-déposer avec progression, contrôle du type réel et du poids (jusqu\'à ' ~ site.upload_max_mb ~ ' Mo par fichier). Galerie et archive .zip.', demo: '<label>Business plan</label><span class="demo-drop">Déposez votre fichier ici · PDF · ' ~ site.upload_max_mb ~ ' Mo max.</span>' },
+] %}
+<div class="tabs" data-tabs>
+    <div class="tabs__list" role="tablist" aria-label="Types de questions">
+        {% for type in types %}
+            <button class="tabs__tab" type="button" role="tab" id="tab-{{ type.id }}" aria-controls="panel-{{ type.id }}" aria-selected="{{ loop.first ? 'true' : 'false' }}" tabindex="{{ loop.first ? 0 : -1 }}">{{ type.label }}</button>
+        {% endfor %}
+    </div>
+    {% for type in types %}
+        <div class="tabs__panel" role="tabpanel" id="panel-{{ type.id }}" aria-labelledby="tab-{{ type.id }}" tabindex="0">
+            <div class="tabs__copy">
+                <h3>{{ type.title }}</h3>
+                <p>{{ type.text }}</p>
+            </div>
+            <div class="demo-card" aria-hidden="true">{{ type.demo|raw }}</div>
+        </div>
+    {% endfor %}
+</div>

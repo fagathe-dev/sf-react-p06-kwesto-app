@@ -1,0 +1,33 @@
+{# CREATOR_BOUNCE_ALERT — adresse rejetée définitivement (specs_fonc §8) #}
+{% extends '@CorePhp/layout.html.twig' %}
+
+{% block preheader %}Une invitation n'a pas pu être remise.{% endblock %}
+
+{% block content %}
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'h1',
+    content: 'Une adresse a été rejetée'
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'p',
+    content: 'Bonjour <strong>' ~ (dto.creatorName|e) ~ '</strong>,<br>L\'invitation au questionnaire <strong>' ~ (dto.surveyTitle|e) ~ '</strong> n\'a pas pu être remise à l\'adresse suivante :'
+  } only %}
+
+  {% include '@CorePhp/components/_code.html.twig' with {
+    code: dto.bouncedEmail,
+    label: 'Adresse invalide',
+    role: 'danger'
+  } only %}
+
+  {% include '@CorePhp/components/_alert.html.twig' with {
+    type: 'info',
+    content: 'Cette adresse est marquée comme rejetée et <strong>exclue du calcul des 100 %</strong> : elle ne bloque pas la clôture automatique du questionnaire.'
+  } only %}
+
+  {% include '@CorePhp/components/_button.html.twig' with {
+    url: dto.recipientsUrl,
+    label: 'Voir le suivi des destinataires',
+    variant: 'outline'
+  } only %}
+{% endblock %}

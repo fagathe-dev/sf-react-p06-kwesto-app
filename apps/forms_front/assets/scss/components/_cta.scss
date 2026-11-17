@@ -1,0 +1,36 @@
+@use '../abstracts' as *;
+
+.cta-band {
+  padding: var(--space-8) 0;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  color: #e0e7ff;
+
+  h2 {
+    color: #fff;
+  }
+
+  p {
+    margin: 0;
+    max-width: 52ch;
+  }
+
+  &__inner {
+    display: grid;
+    gap: var(--space-5);
+    align-items: center;
+
+    @include up(lg) {
+      grid-template-columns: 3fr 2fr;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+
+    @include up(lg) {
+      justify-content: flex-end;
+    }
+  }
+}

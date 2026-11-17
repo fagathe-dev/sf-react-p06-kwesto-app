@@ -1,0 +1,25 @@
+framework:
+    messenger:
+        failure_transport: failed
+
+        transports:
+            # Invitations de campagne (specs_fonc §5.3) : consommées par `bin/console messenger:consume async`
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                retry_strategy:
+                    max_retries: 3
+                    delay: 60000
+                    multiplier: 2
+            failed: 'doctrine://default?queue_name=failed'
+            sync: 'sync://'
+
+        routing:
+            FormsCore\Message\SendInvitationMessage: sync
+            # Les e-mails unitaires (accusé de réception, alertes) partent en direct : voir mailer.yaml
+            Symfony\Component\Mailer\Messenger\SendEmailMessage: sync
+
+when@test:
+    framework:
+        messenger:
+            transports:
+                async: 'sync://'

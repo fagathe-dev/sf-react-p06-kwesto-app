@@ -1,0 +1,93 @@
+{% extends 'base.html.twig' %}
+
+{% block javascripts %}<script type="module" src="{{ asset('js/pages/home.js') }}"></script>{% endblock %}
+
+{% block body %}
+<section class="hero">
+    <div class="container hero__grid">
+        <div class="hero__copy">
+            <p class="eyebrow">Questionnaires sur invitation</p>
+            <h1>Des réponses fiables, une seule fois par personne.</h1>
+            <p class="lead">
+                Concevez votre questionnaire, envoyez à chaque destinataire un lien personnel à usage unique,
+                laissez kwesto relancer et clôturer pour vous, puis analysez des statistiques consolidées.
+            </p>
+            <div class="hero__actions">
+                <a class="btn btn--primary btn--lg" href="{{ app_url('/login') }}">Commencer gratuitement</a>
+                <a class="btn btn--ghost btn--lg" href="{{ path('app_features') }}">Découvrir les fonctionnalités</a>
+            </div>
+            <ul class="hero__proof" aria-label="Points clés">
+                <li>Sans compte pour vos participants</li>
+                <li>Une réponse par lien</li>
+                <li>Hébergé en France</li>
+            </ul>
+        </div>
+
+        {# Aperçu visuel du formulaire participant #}
+        <figure class="mockup" aria-label="Aperçu d'un formulaire kwesto">
+            <div class="mockup__bar"><span></span><span></span><span></span></div>
+            <div class="mockup__body">
+                <p class="mockup__step">Étape 2 sur 3</p>
+                <div class="mockup__progress" aria-hidden="true"><span style="width: 66%"></span></div>
+                <p class="mockup__question"><strong>4.</strong> Recommanderiez-vous l'entreprise à un proche ?</p>
+                <div class="help-box"><strong>À savoir</strong>De 0 (pas du tout) à 10 (certainement).</div>
+                <div class="mockup__scale" aria-hidden="true">
+                    {% for n in 0..10 %}<span{% if n == 8 %} class="is-selected"{% endif %}>{{ n }}</span>{% endfor %}
+                </div>
+                <div class="mockup__nav"><span class="btn btn--ghost btn--sm">Précédent</span><span class="btn btn--primary btn--sm">Suivant</span></div>
+            </div>
+        </figure>
+    </div>
+</section>
+
+<section class="section" aria-labelledby="steps-title">
+    <div class="container">
+        <h2 class="section__title" id="steps-title">Trois étapes, de la question à la décision</h2>
+        <ol class="steps">
+            <li class="step">
+                <span class="step__number">1</span>
+                <h3>Concevez</h3>
+                <p>Cinq types de questions, des sections pour guider pas à pas, une aide contextuelle par question. Réordonnez tout par glisser-déposer.</p>
+            </li>
+            <li class="step">
+                <span class="step__number">2</span>
+                <h3>Diffusez</h3>
+                <p>Collez votre liste d'adresses ou importez un CSV : chaque destinataire reçoit son lien personnel. kwesto relance les retardataires.</p>
+            </li>
+            <li class="step">
+                <span class="step__number">3</span>
+                <h3>Analysez</h3>
+                <p>Taux de participation en temps réel, statistiques par question, recherche dans les verbatims, export CSV et archive des fichiers.</p>
+            </li>
+        </ol>
+    </div>
+</section>
+
+<section class="section section--alt" aria-labelledby="types-title">
+    <div class="container">
+        <h2 class="section__title" id="types-title">Cinq types de questions, chacun avec ses règles</h2>
+        <p class="section__lead">La validation est faite pendant la saisie et vérifiée par le serveur : des données propres, prêtes à analyser.</p>
+        {% include 'partials/_question_types_tabs.html.twig' %}
+    </div>
+</section>
+
+<section class="section" aria-labelledby="trust-title">
+    <div class="container features-grid">
+        <h2 class="visually-hidden" id="trust-title">Pourquoi kwesto</h2>
+        <article class="feature">
+            <h3>Une réponse par personne, garantie</h3>
+            <p>Le lien est personnel et verrouillé après l'envoi : ni double réponse, ni rafraîchissement accidentel, ni rejeu.</p>
+        </article>
+        <article class="feature">
+            <h3>Des statistiques qui ne bougent plus</h3>
+            <p>À la clôture, la structure et les résultats sont figés. Vos chiffres restent cohérents, même des mois plus tard.</p>
+        </article>
+        <article class="feature">
+            <h3>Respect de la vie privée</h3>
+            <p>Les adresses IP sont anonymisées 30 jours après la clôture. Vos participants n'ont jamais de compte à créer.</p>
+        </article>
+    </div>
+</section>
+
+{% include 'partials/_cta.html.twig' %}
+{% endblock %}

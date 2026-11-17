@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+
+{#
+  Contenu à compléter par l'éditeur (raison sociale, SIREN, adresse, directeur de la publication,
+  hébergeur) : les champs entre crochets sont des emplacements, pas des informations réelles.
+#}
+{% block body %}
+<section class="page-hero page-hero--compact">
+    <div class="container container--narrow">
+        <h1>Mentions légales</h1>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container container--narrow prose">
+        <h2>Éditeur du site</h2>
+        <p>
+            [Raison sociale], [forme juridique] au capital de [montant] €<br>
+            Siège social : [adresse]<br>
+            RCS [ville] [numéro SIREN] — TVA intracommunautaire : [numéro]<br>
+            Directeur de la publication : [nom]<br>
+            Contact : <a href="{{ path('app_contact') }}">formulaire de contact</a>
+        </p>
+
+        <h2>Hébergement</h2>
+        <p>[Nom de l'hébergeur], [adresse], [téléphone]. Les données sont hébergées en France.</p>
+
+        <h2>Propriété intellectuelle</h2>
+        <p>
+            L'ensemble des contenus de ce site (textes, visuels, marque kwesto, logiciel) est protégé par le droit de la propriété
+            intellectuelle. Toute reproduction sans autorisation préalable est interdite.
+        </p>
+
+        <h2>Données personnelles</h2>
+        <p>Le traitement des données personnelles est décrit dans la <a href="{{ path('app_privacy') }}">politique de confidentialité</a>.</p>
+    </div>
+</section>
+{% endblock %}

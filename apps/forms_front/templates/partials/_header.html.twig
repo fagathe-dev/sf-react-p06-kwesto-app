@@ -1,0 +1,34 @@
+{% set route = app.request.attributes.get('_route') %}
+{% set nav = [
+    { route: 'app_features', label: 'Fonctionnalités' },
+    { route: 'app_use_cases', label: 'Cas d\'usage' },
+    { route: 'app_pricing', label: 'Tarifs' },
+    { route: 'app_contact', label: 'Contact' },
+] %}
+<header class="site-header">
+    <div class="container site-header__inner">
+        <a class="brand" href="{{ path('app_home') }}" aria-label="kwesto, accueil">
+            <svg class="brand__logo" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M9 17.5l4.2 4.2L23 11.9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            kwesto
+        </a>
+
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" data-nav-toggle>
+            <span class="nav-toggle__bar" aria-hidden="true"></span>
+            <span class="visually-hidden">Ouvrir le menu</span>
+        </button>
+
+        <nav class="site-nav" id="menu-principal" aria-label="Navigation principale" data-nav>
+            <ul class="site-nav__list">
+                {% for item in nav %}
+                    <li>
+                        <a class="site-nav__link{{ route == item.route ? ' is-active' }}" href="{{ path(item.route) }}"{% if route == item.route %} aria-current="page"{% endif %}>{{ item.label }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="site-nav__actions">
+                <a class="btn btn--ghost" href="{{ app_url('/login') }}">Se connecter</a>
+                <a class="btn btn--primary" href="{{ path('app_contact') }}">Demander une démo</a>
+            </div>
+        </nav>
+    </div>
+</header>

@@ -1,0 +1,29 @@
+{# Message du formulaire de contact du site vitrine #}
+{% extends '@CorePhp/layout.html.twig' %}
+
+{% block preheader %}Nouveau message de {{ dto.name }}.{% endblock %}
+
+{% block content %}
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'h1',
+    content: 'Nouveau message de contact'
+  } only %}
+
+  {% include '@CorePhp/components/_details.html.twig' with {
+    rows: [
+      { label: 'Nom', value: dto.name },
+      { label: 'E-mail', value: dto.email },
+      { label: 'Objet', value: dto.subject },
+      { label: 'Reçu le', value: received_at|date('d/m/Y H:i', 'Europe/Paris') }
+    ]
+  } only %}
+
+  {% include '@CorePhp/components/_box.html.twig' with {
+    content: dto.message|e|nl2br
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'small',
+    content: 'Répondez directement à cet e-mail pour écrire à l\'expéditeur.'
+  } only %}
+{% endblock %}

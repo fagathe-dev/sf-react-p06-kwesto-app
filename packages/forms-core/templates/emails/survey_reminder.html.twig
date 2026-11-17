@@ -1,0 +1,40 @@
+{# SURVEY_REMINDER — rappel de l'échéance, une seule fois par campagne (specs_fonc §8) #}
+{% extends '@CorePhp/layout.html.twig' %}
+
+{% block preheader %}Il vous reste quelques jours pour répondre.{% endblock %}
+
+{% block content %}
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'h1',
+    content: 'Votre réponse est encore attendue'
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'p',
+    content: 'Bonjour,<br>Vous n\'avez pas encore répondu au questionnaire <strong>' ~ (dto.surveyTitle|e) ~ '</strong>. Il reste ouvert quelques jours seulement.'
+  } only %}
+
+  {% include '@CorePhp/components/_alert.html.twig' with {
+    type: 'warning',
+    title: 'Date limite de réponse',
+    content: 'Les réponses ne seront plus acceptées après le <strong>' ~ (expires_at|e) ~ '</strong>.'
+  } only %}
+
+  {% include '@CorePhp/components/_button.html.twig' with {
+    url: dto.surveyUrl,
+    label: 'Répondre maintenant',
+    size: 'lg'
+  } only %}
+
+  {% include '@CorePhp/components/_divider.html.twig' only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'small',
+    content: 'Lien direct : ' ~ (dto.surveyUrl|e)
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'small',
+    content: 'Ce rappel n\'est envoyé qu\'une seule fois. Si vous avez répondu entre-temps, vous pouvez ignorer ce message.'
+  } only %}
+{% endblock %}

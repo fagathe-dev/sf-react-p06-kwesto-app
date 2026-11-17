@@ -1,0 +1,17 @@
+{#
+  Bandeau de consentement : le site ne dépose aucun traceur tiers par défaut ; le choix est mémorisé
+  dans le navigateur (assets/ts/components/consent.ts) et peut être modifié depuis le pied de page.
+#}
+<section class="consent" role="dialog" aria-modal="false" aria-labelledby="consent-title" aria-describedby="consent-text" data-consent hidden>
+    <div class="consent__body">
+        <h2 class="consent__title" id="consent-title">Votre vie privée</h2>
+        <p id="consent-text">
+            Nous utilisons uniquement des cookies nécessaires au fonctionnement du site. Avec votre accord, nous mesurerions aussi l'audience de façon anonyme.
+            <a href="{{ path('app_privacy') }}">En savoir plus</a>
+        </p>
+    </div>
+    <div class="consent__actions">
+        <button class="btn btn--ghost" type="button" data-consent-choice="refused">Refuser</button>
+        <button class="btn btn--primary" type="button" data-consent-choice="accepted">Accepter</button>
+    </div>
+</section>

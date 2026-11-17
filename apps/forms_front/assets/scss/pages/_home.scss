@@ -1,0 +1,130 @@
+@use '../abstracts' as *;
+
+.hero {
+  padding: var(--space-8) 0;
+  background:
+    radial-gradient(circle at 85% 10%, var(--color-primary-soft), transparent 45%),
+    radial-gradient(circle at 0% 100%, #f0f9ff, transparent 40%),
+    var(--color-surface);
+
+  @include up(lg) {
+    padding: var(--space-9) 0;
+  }
+
+  &__grid {
+    display: grid;
+    gap: var(--space-7);
+    align-items: center;
+
+    @include up(lg) {
+      grid-template-columns: 1.1fr 0.9fr;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin: var(--space-5) 0;
+  }
+
+  &__proof {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9rem;
+    color: var(--color-muted);
+
+    li::before {
+      content: '✓ ';
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+  }
+}
+
+.mockup {
+  margin: 0;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+
+  &__bar {
+    display: flex;
+    gap: 6px;
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface-strong);
+
+    span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--color-border-strong);
+    }
+  }
+
+  &__body {
+    padding: var(--space-5);
+  }
+
+  &__step {
+    margin-bottom: var(--space-2);
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+
+  &__progress {
+    height: 8px;
+    margin-bottom: var(--space-5);
+    border-radius: var(--radius-pill);
+    background: var(--color-border);
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--color-primary);
+    }
+  }
+
+  &__question {
+    font-weight: 600;
+    color: var(--color-heading);
+
+    strong {
+      color: var(--color-primary);
+    }
+  }
+
+  &__scale {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 4px;
+    margin: var(--space-4) 0;
+
+    span {
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+
+      &.is-selected {
+        border-color: var(--color-primary);
+        background: var(--color-primary);
+        color: #fff;
+      }
+    }
+  }
+
+  &__nav {
+    display: flex;
+    justify-content: space-between;
+  }
+}

@@ -1,0 +1,8 @@
+framework:
+    mailer:
+        dsn: '%env(MAILER_DSN)%'
+        # Envoi direct par le transport : l'asynchronisme est porté par SendInvitationMessage, ce qui
+        # permet à InvitationSender de connaître le résultat (SENT ou BOUNCED) de chaque invitation.
+        message_bus: false
+        envelope:
+            sender: '%env(MAILER_FROM_ADDRESS)%'

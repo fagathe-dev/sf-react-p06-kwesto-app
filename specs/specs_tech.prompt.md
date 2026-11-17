@@ -3,7 +3,7 @@
 > **Contexte d'utilisation :** architecture logicielle du monorepo, contrats de données, intégration des librairies internes (`core-php`, `core-ts`, `core-react`), package partagé `forms-core`, endpoints REST et tâches planifiées.
 > Document compagnon : [`specs_fonc.prompt.md`](./specs_fonc.prompt.md).
 
-> ⚠️ **Document incomplet.** La source initiale de ce document était tronquée au milieu du tableau de l'ancienne section 2 (ligne `core-php`). Les sections de détail (contrats de données JSON, endpoints REST, schéma Doctrine, Scheduler, etc.) sont à réinjecter depuis la version complète : voir la section 9.
+> ⚠️ **Document incomplet.** La source initiale de ce document était tronquée au milieu du tableau de l'ancienne section 2 (ligne `core-php`). Les sections de détail (contrats de données JSON, endpoints REST, schéma Doctrine, Scheduler, etc.) sont à réinjecter depuis la version complète : voir la section 10. La section 9 décrit déjà les contrats des questions (7 types et affichage conditionnel).
 
 ## Table des matières
 
@@ -15,7 +15,8 @@
 6. [Domaines et politique d'indexation](#6-domaines-et-politique-dindexation)
 7. [Règles d'organisation du monorepo](#7-règles-dorganisation-du-monorepo)
 8. [Variables d'environnement](#8-variables-denvironnement)
-9. [Sections à compléter](#9-sections-à-compléter)
+9. [Contrats des questions : 7 types et affichage conditionnel](#9-contrats-des-questions--7-types-et-affichage-conditionnel)
+10. [Sections à compléter](#10-sections-à-compléter)
 
 ---
 
@@ -93,9 +94,9 @@ Tout ce qui est commun aux applications Symfony doit résider dans `packages/for
 | Dossier | Contenu |
 | :--- | :--- |
 | `DependencyInjection/` | Extension du bundle, configuration, autowiring |
-| `DTO/` | Contrats polymorphes (`QuestionConfig`, `AnswerPayload`, …) |
+| `DTO/` | Contrats polymorphes (`QuestionConfig`, `AnswerPayload`, `DisplayCondition`, …) : voir §9 |
 | `Entity/` | `User`, `Survey`, `SurveySection`, `Question`, `SurveyRecipient`, `SurveyAnswer`, `UploadedAsset` |
-| `Enum/` | Enums PHP 8.4 (`SurveyStatus`, `QuestionType`, `RecipientStatus`, …) |
+| `Enum/` | Enums PHP 8.4 (`SurveyStatus`, `QuestionType` — 7 types dont `BOOLEAN`, `RecipientStatus`, `ConditionOperator`, …) |
 | `Repository/` | Repositories Doctrine partagés |
 | `Service/` | Services transverses : Validation, Mailer, Telemetry, Stats |
 | `FormsCoreBundle.php` | Bundle Symfony exposant le mapping Doctrine et l'autowiring |
@@ -367,6 +368,7 @@ Les liens personnels des participants (`/s/{token}`) sont servis par `forms_bo` 
 * Toute logique PHP commune aux apps Symfony va dans `packages/forms-core` ; une logique utilisée par une seule app reste dans cette app.
 * `forms_bo` ne parle qu'à `forms_api`.
 * Dans `forms_bo`, le formulaire répondant inclut une barre de progression (toujours) et un stepper (si le questionnaire a ≥ 2 sections) : voir fonc §3.4 et §6.4. Le modèle expose `SurveySection` (`title`, `description`, `position`) et un `sectionId` sur chaque question.
+* Les conditions d'affichage (fonc §3.5) sont évaluées **par la même règle** côté serveur (`ConditionEvaluatorService`, forms-core) et côté navigateur (`conditionEvaluator.ts`, forms_bo) ; le serveur reste seul juge (voir §9.4).
 * `forms_front` n'utilise ni Symfony UX, ni Stimulus, ni AssetMapper (voir §5.1.1) ; ses assets sont compilés avec esbuild et sass (voir §5.1.2).
 * `SKILL.md` à la racine doit refléter cette topologie, les règles de factorisation et les `.npmrc`.
 
@@ -420,6 +422,156 @@ Les liens personnels des participants (`/s/{token}`) sont servis par `forms_bo` 
 
 ---
 
-## 9. Sections à compléter
+## 9. Contrats des questions : 7 types et affichage conditionnel
 
-<!-- TODO : reprendre depuis la version complète de la spec technique : contrats JSON polymorphes (QuestionConfig / AnswerPayload), schéma Doctrine, endpoints REST /api/admin/* et /api/public/*, authentification JWT, Voters, Scheduler (crons de la spec fonctionnelle §9), envoi des e-mails, détail des responsabilités de core-php / core-ts / core-react. -->
+Détail fonctionnel : fonc §3.5 (affichage conditionnel) et §4 (types). Les contrats ci-dessous sont communs à `packages/forms-core` (DTO PHP) et `apps/forms_bo` (types TypeScript, `src/types/survey.types.ts`).
+
+### 9.1 Entité `Question` (forms-core)
+
+| Champ | Colonne | Règle |
+| :--- | :--- | :--- |
+| `type` | `VARCHAR(16)`, enum `QuestionType` | `TEXT`, `NUMBER`, `CHOICE`, `DATE`, `FILE`, **`BOOLEAN`** |
+| `config` | `JSON` | contrat `QuestionConfig` du type (§9.2) |
+| `displayCondition` | **`JSON`, nullable** (nouveau) | contrat `QuestionDisplayCondition` (§9.3) ; `null` = toujours affichée |
+
+* Base MySQL / MariaDB (hypothèse du §3.5) : colonne `JSON`. Une base PostgreSQL utiliserait `jsonb`.
+* Ajout de la colonne et du case d'enum par **migration Doctrine** de `forms_api`.
+* Le type est porté par `Question.type` : `config`, `displayCondition` et le payload de réponse ne répètent pas de discriminant `type`.
+
+### 9.2 Contrats `QuestionConfig` et `AnswerPayload`
+
+```typescript
+type QuestionConfig =
+  | { /* TEXT */    multiline: boolean; minLength?: number; maxLength?: number; placeholder?: string }
+  | { /* NUMBER */  allowDecimal: boolean; min?: number; max?: number; step?: number; unit?: string }
+  | { /* CHOICE */  widget: 'radio' | 'checkbox' | 'select'; multiple: boolean; options: { id: string; label: string }[] }
+  | { /* DATE */    minDate?: string; maxDate?: string }                       // YYYY-MM-DD
+  | { /* FILE */    allowedMimeTypes: string[]; maxSizeMb?: number; maxFiles: number }
+  | { /* BOOLEAN */ preset: 'YES_NO' | 'TRUE_FALSE' | 'CUSTOM'; trueLabel: string; falseLabel: string; // 1 à 80 car.
+      widget: 'buttons' | 'switch'; defaultValue: boolean | null }    // switch ⇒ defaultValue jamais null (false)
+  | { /* RANGE */   min: number; max: number; step: number; values?: number[]; // values : échelle personnalisée triée (min/max déduits)
+      minLabel?: string; maxLabel?: string; unit?: string; defaultValue: number | null };
+
+type AnswerPayload =
+  | { value: string }            // TEXT, DATE (YYYY-MM-DD)
+  | { value: number }            // NUMBER, RANGE
+  | { optionIds: string[] }      // CHOICE
+  | { assetIds: string[] }       // FILE
+  | { value: boolean };          // BOOLEAN — toujours un booléen natif
+```
+
+Côté PHP : `FormsCore\DTO\QuestionConfig\BooleanConfig` et `FormsCore\DTO\AnswerPayload\BooleanAnswer`, plus `FormsCore\QuestionType\BooleanHandler` (découvert par `QuestionTypeRegistry`, comme les autres) :
+
+| Méthode du handler | Comportement `BOOLEAN` |
+| :--- | :--- |
+| `normalizeConfig` | preset par défaut `YES_NO` ; libellés manquants complétés depuis le preset ; preset recalculé en `CUSTOM` si les libellés diffèrent du modèle ; `widget` `buttons` par défaut ; `defaultValue` forcé à `false` pour un `switch` sans valeur |
+| `validateConfig` | `trueLabel` et `falseLabel` obligatoires, 1 à 80 caractères, différents (sans tenir compte de la casse) |
+| `isEmptyAnswer` | `null` ou chaîne vide uniquement (`false` est une réponse) |
+| `validateAnswer` | accepte `true` / `false`, `"true"` / `"false"`, `1` / `0` ; tout le reste est rejeté |
+| `computeStats` | `{ count, trueCount, falseCount, truePercent, falsePercent, trueLabel, falseLabel }` |
+| `exportValue` | libellé correspondant à la valeur |
+
+Presets (builder et `normalizeConfig`) : `YES_NO` → « Oui » / « Non » ; `TRUE_FALSE` → « Vrai » / « Faux ».
+
+**RANGE** : `FormsCore\DTO\QuestionConfig\RangeConfig` et `FormsCore\QuestionType\RangeHandler` (réponse : `NumberAnswer`). `validateConfig` : `min < max`, pas > 0, `max - min` multiple du pas, 1000 crans au plus ; échelle personnalisée : au moins 2 valeurs ; `defaultValue` sur l'échelle. `validateAnswer` : valeur de l'échelle (bornes et cran, ou présente dans `values`). `computeStats` : `{ count, min, max, mean, median, scaleMin, scaleMax, minLabel, maxLabel, unit, distribution[{value, count}] (≤ 21 crans), histogram }`. Côté `forms_bo` : `ui/RangeSlider.tsx` (`Slider` de core-react), `builder/RangeEditor.tsx`.
+
+### 9.3 Contrat `QuestionDisplayCondition`
+
+```typescript
+type ConditionOperator =
+  | 'EQUALS'           // CHOICE à choix unique (option choisie), BOOLEAN, NUMBER, RANGE
+  | 'NOT_EQUALS'
+  | 'IN'               // CHOICE à choix unique : l'option choisie fait partie de la liste
+  | 'LESS_THAN' | 'LESS_OR_EQUAL' | 'GREATER_THAN' | 'GREATER_OR_EQUAL'; // NUMBER, RANGE
+
+interface QuestionDisplayCondition {
+  sourceQuestionId: string;                    // UUID d'une question BOOLEAN, CHOICE à choix unique, NUMBER ou RANGE, de position inférieure
+  operator: ConditionOperator;
+  value: string | boolean | number | string[]; // optionId, liste d'optionId (IN), booléen ou nombre (fonc §3.5)
+}
+```
+
+Exemples :
+
+```json
+{ "sourceQuestionId": "uuid-q1", "operator": "EQUALS", "value": "opt_femme" }
+{ "sourceQuestionId": "uuid-q1", "operator": "IN", "value": ["opt_presse", "opt_autre"] }
+{ "sourceQuestionId": "uuid-q1", "operator": "EQUALS", "value": true }
+{ "sourceQuestionId": "uuid-q2", "operator": "LESS_THAN", "value": 5 }
+```
+
+**Sources autorisées** : `BOOLEAN`, `CHOICE` dont le widget est `radio` ou `select`, `NUMBER` et `RANGE`. `ConditionOperator::allowedFor($type, $multipleChoice)` renvoie une liste vide pour toute autre source (`TEXT`, `DATE`, `FILE`, `CHOICE` `checkbox`) ; `ConditionEvaluatorService::canBeSource()` et, côté navigateur, `canBeConditionSource()` / `operatorsFor()` (`conditionEvaluator.ts`) appliquent la même règle. Côté PHP : `FormsCore\DTO\DisplayCondition` (readonly) et l'enum `FormsCore\Enum\ConditionOperator`.
+
+### 9.4 `ConditionEvaluatorService` (forms-core)
+
+Service transverse et sans état, unique source de vérité de l'évaluation côté serveur.
+
+| Méthode | Rôle |
+| :--- | :--- |
+| `validate(Question $question, array $orderedQuestions): list<string>` | erreurs de conception : source inexistante, `source.position >= question.position`, source `FILE`, opérateur incompatible, valeur invalide (option absente de la source, type de valeur incorrect) |
+| `isSatisfied(DisplayCondition $condition, ?array $sourcePayload): bool` | évaluation d'une condition ; `false` si la source n'a pas de réponse |
+| `visibleQuestionIds(array $orderedQuestions, array $payloadsByQuestionId): list<string>` | parcours dans l'ordre des positions ; une question dont la source est masquée est masquée (cascade) |
+
+Utilisateurs :
+
+| Appelant | Usage |
+| :--- | :--- |
+| `SurveyService::saveStructure` / `validate` | contrôle de conception (§9.5) ; à la validation, chaque erreur est remontée comme les autres (`scope: question`) |
+| `ParticipantService::submit` | 1. normaliser les réponses reçues via les handlers ; 2. calculer les questions visibles ; 3. ignorer les valeurs des questions masquées ; 4. contrôler `required` et les formats **uniquement** sur les questions visibles ; 5. enregistrer de façon atomique (fonc §6.2) |
+| `StatsService::compute` | nombre de répondants éligibles par question conditionnelle (`eligibleCount`) ; `answerRate = answersCount / eligibleCount` |
+| `ExportService` | cellule vide pour une question masquée |
+
+Évaluation des opérateurs : `CHOICE` sur l'ensemble `optionIds` de la réponse (une seule option pour un choix unique) ; `BOOLEAN` sur la valeur booléenne normalisée ; `NUMBER` / `RANGE` en comparaison de nombres (égalité à 1e-9 près). Toute autre source est refusée à la conception (`structureErrors` : « Une condition ne peut porter que sur une question « Oui / Non », à choix unique, « Chiffres » ou « Échelle ». ») et n'est jamais satisfaite.
+
+### 9.5 Règles d'enregistrement de la structure (`forms_api`)
+
+L'enregistrement, la réorganisation et la suppression des questions d'un brouillon passent tous par `PUT /api/admin/surveys/{id}/structure` (structure complète, l'ordre du tableau fait foi ; voir `docs/api.md`). Les règles de `displayCondition` y sont appliquées :
+
+| Situation | Réponse |
+| :--- | :--- |
+| `sourceQuestionId` absent du payload (question source supprimée) | la condition est **retirée automatiquement** de la question dépendante ; enregistrement accepté |
+| source présente mais placée **après ou au même rang** que la question (réordonnancement interdit) | **422** `{ message, errors: [{ scope: 'question', id, position, message }] }` ; rien n'est enregistré |
+| source de type `FILE`, opérateur incompatible ou valeur de forme incorrecte | **422**, mêmes détails |
+| valeur qui ne correspond plus à la source (ex. option supprimée) | accepté en `DRAFT` (brouillon incomplet), signalé à la validation et bloquant (fonc §3.3) |
+| questionnaire hors `DRAFT` | **409** (immutabilité, fonc §2) |
+
+Soumission participant : `POST /api/public/surveys/{token}/submit` applique le §9.4. Une valeur envoyée pour une question masquée n'est ni validée, ni enregistrée, ni comptée en violation.
+
+### 9.6 Comportement de `forms_bo`
+
+**Builder**
+* Type `BOOLEAN` (libellé « Oui / Non ») : sélecteur de preset (`Oui / Non`, `Vrai / Faux`, `Personnalisé`) en `SegmentedControl` de `core-react`, deux champs de libellé toujours éditables, rendu (`Deux boutons` / `Interrupteur`), valeur par défaut (`Aucune` — boutons seulement —, vrai, faux), aperçu manipulable (`ui/BooleanControl`, partagé avec le formulaire participant).
+* Implémentation des conditions : `pages/surveys/builder/conditions.ts` (libellés d'opérateurs, résumé, contrôles, ordre), `DisplayConditionEditor.tsx` ; une condition incomplète reste dans le builder mais n'est pas envoyée (`displayCondition: null`) ; l'enregistrement automatique est suspendu pendant un glisser-déposer (`useBuilder.hold`) ; changer le type d'une question source retire les conditions qui en dépendent.
+* Éditeur « Afficher cette question uniquement si… » (`DisplayConditionEditor`) : question source parmi les **questions précédentes Oui / Non ou à choix unique** (radio, liste), opérateurs « est », « n'est pas », « est l'une de » (choix) ou « est », « n'est pas » (Oui / Non), valeur choisie dans les options du `CHOICE` ou les libellés du `BOOLEAN`. Indisponible sur la question en position 1 ; sans source possible, un message explique la règle. Une source qui change de type ou passe en choix multiple voit ses conditions dépendantes retirées.
+* Badge « Conditionnelle — si Q{n} … » sur les cartes de question (`QuestionCard`), numéro de la source recalculé en direct.
+* Glisser-déposer : avant d'appliquer un déplacement, `builderModel` vérifie `source.position < question.position` pour toutes les conditions ; en cas de violation, `ConfirmDialog` propose « Retirer la condition et déplacer » ou « Annuler ». Supprimer une question source retire les conditions dépendantes (avec mention dans la boîte de confirmation).
+
+**Mode d'affichage (`displayMode`, fonc §6.4)**
+* Entité `Survey` : colonne `display_mode` VARCHAR(16), enum `FormsCore\Enum\SurveyDisplayMode` (`LIST` par défaut, `ONE_BY_ONE`), groupes `survey.read` et `survey.public`. Migration `Version20261116031305`.
+* `PATCH /api/admin/surveys/{id}` accepte `displayMode` (avec `title` / `description`) : 400 si valeur inconnue, 409 une fois la campagne lancée. Copié par `POST …/duplicate`.
+* `showDuration` (option du questionnaire, booléen, défaut `true`, colonne `show_duration`) : afficher ou non la **durée estimée** ; le nombre de questions est toujours affiché. Même endpoint, mêmes règles ; 400 si la valeur n'est pas un booléen. Estimation calculée par `forms_bo` (`pages/participant/estimate.ts`).
+* `forms_bo` : `participantModel.buildFlow(survey, mode)` produit les écrans et le stepper (vide sous 2 sections) ; `SurveyRunner` est le parcours unique, partagé par `/s/:token` et l'aperçu du builder (qui force le mode et désactive les contrôles par défaut).
+
+**Brouillon participant (fonc §6.5)**
+* `SurveyRecipient` : colonnes `draft_answers` (JSON, nullable), `draft_question_id` (VARCHAR 36), `draft_saved_at` ; `saveDraft()`, `clearDraft()`, `getDraft()`. Effacé par `markAnswered()`, par `DELETE …/draft` et à la clôture (`SurveyRecipientRepository::clearDrafts()` appelé par `LifecycleService::close`).
+* `GET /api/public/surveys/{token}` renvoie `draft: { answers, questionId, savedAt } | null`.
+* `PUT /api/public/surveys/{token}/draft` : corps `{ answers, questionId? }` ; seules les questions du questionnaire sont gardées, chaînes (10 000 car.) ou listes de chaînes (100 éléments) ; pas de validation métier ni de limitation de débit ; réponse `{ savedAt }` ; 403 si le lien ne permet plus de répondre.
+* `DELETE /api/public/surveys/{token}/draft` : brouillon effacé et fichiers en attente supprimés (`AssetService::deleteAllPending`) ; 204.
+* `forms_bo` : écran de reprise dans `ParticipantPage` ; `SurveyRunner` (`initialQuestionId`, `onProgress`) ; enregistrement 800 ms après la dernière modification.
+
+**Formulaire participant (`/s/:token`)**
+* Barre de navigation, puis bandeau collé en haut (`position: sticky`) : stepper puis barre de progression.
+* `conditionEvaluator.ts` (miroir de `ConditionEvaluatorService`, testé sur les mêmes cas) est rejoué à chaque changement de réponse ; les questions masquées ne sont pas rendues.
+* Une question qui redevient masquée voit sa valeur locale réinitialisée ; ses fichiers déposés sont retirés (`DELETE /api/public/surveys/{token}/files/{assetId}`).
+* Validation de l'étape et progression calculées sur les seules questions visibles ; étapes entièrement masquées sautées (fonc §6.4) ; payload de soumission limité aux questions visibles.
+* Rendu `BOOLEAN` : `SegmentedControl` (rôle `radiogroup`) à deux segments, pleine largeur sur mobile.
+
+**Statistiques**
+* Widget `BOOLEAN` : effectifs et pourcentages des deux libellés, barre comparative.
+* Questions conditionnelles : « Affichée à {eligibleCount} répondants » et rappel de la condition ; taux de réponse sur `eligibleCount`.
+
+---
+
+## 10. Sections à compléter
+
+<!-- TODO : reprendre depuis la version complète de la spec technique (les contrats QuestionConfig / AnswerPayload / displayCondition sont au §9) : schéma Doctrine complet, endpoints REST /api/admin/* et /api/public/*, authentification JWT, Voters, Scheduler (crons de la spec fonctionnelle §9), envoi des e-mails, détail des responsabilités de core-php / core-ts / core-react. -->

@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<section class="page-hero page-hero--compact">
+    <div class="container container--narrow">
+        <h1>Politique de confidentialité et RGPD</h1>
+        <p class="lead">Ce que nous collectons, pourquoi, combien de temps, et comment exercer vos droits.</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container container--narrow prose">
+        <h2>Responsable du traitement</h2>
+        <p>L'éditeur du site, désigné dans les <a href="{{ path('app_legal') }}">mentions légales</a>, pour le site vitrine et les comptes des créateurs. Pour les réponses aux questionnaires, le responsable du traitement est l'organisation qui a créé et diffusé le questionnaire ; kwesto agit comme sous-traitant.</p>
+
+        <h2>Données des participants</h2>
+        <ul>
+            <li><strong>Adresse e-mail</strong>, fournie par le créateur du questionnaire, pour envoyer l'invitation, l'éventuelle relance et l'accusé de réception.</li>
+            <li><strong>Réponses et fichiers déposés</strong>, transmis au seul créateur du questionnaire.</li>
+            <li><strong>Données techniques de soumission</strong> : adresse IP, navigateur, système, type d'appareil et durée de complétion, pour la sécurité et des statistiques agrégées.</li>
+        </ul>
+
+        <h2>Durées de conservation</h2>
+        <ul>
+            <li>Les adresses IP sont tronquées de façon irréversible <strong>30 jours après la clôture</strong> du questionnaire ; seules les statistiques agrégées (navigateur, système, appareil) sont conservées.</li>
+            <li>Les fichiers déposés mais jamais envoyés sont supprimés après <strong>24 heures</strong>.</li>
+            <li>Les brouillons inactifs depuis plus de <strong>60 jours</strong> sont supprimés.</li>
+            <li>Les réponses sont conservées tant que le créateur conserve son questionnaire.</li>
+        </ul>
+
+        <h2>Formulaire de contact</h2>
+        <p>Les informations saisies (nom, adresse e-mail, message) servent uniquement à répondre à votre demande et ne sont pas utilisées à des fins commerciales sans votre accord.</p>
+
+        <h2>Cookies</h2>
+        <p>Le site n'utilise que des cookies nécessaires à son fonctionnement (sécurité du formulaire de contact). Votre choix concernant la mesure d'audience est mémorisé dans votre navigateur et peut être modifié à tout moment :</p>
+        <p><button class="btn btn--ghost btn--sm" type="button" data-consent-open>Gérer mes préférences</button></p>
+
+        <h2>Vos droits</h2>
+        <p>Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation et d'opposition. Pour les exercer, écrivez-nous via le <a href="{{ path('app_contact') }}">formulaire de contact</a>. Vous pouvez également saisir la CNIL.</p>
+    </div>
+</section>
+{% endblock %}

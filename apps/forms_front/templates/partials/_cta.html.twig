@@ -1,0 +1,12 @@
+<section class="cta-band" aria-labelledby="cta-title">
+    <div class="container cta-band__inner">
+        <div>
+            <h2 id="cta-title">{{ title ?? 'Prêt à lancer votre première campagne ?' }}</h2>
+            <p>{{ text ?? 'Créez un questionnaire en quelques minutes, diffusez-le par lien personnel et suivez les réponses en temps réel.' }}</p>
+        </div>
+        <div class="cta-band__actions">
+            <a class="btn btn--light btn--lg" href="{{ app_url('/login') }}">Commencer gratuitement</a>
+            <a class="btn btn--outline-light btn--lg" href="{{ path('app_contact') }}">Parler à l'équipe</a>
+        </div>
+    </div>
+</section>

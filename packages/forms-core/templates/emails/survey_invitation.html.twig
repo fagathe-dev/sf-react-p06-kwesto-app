@@ -1,0 +1,48 @@
+{# SURVEY_INVITATION — invitation personnelle (specs_fonc §8) #}
+{% extends '@CorePhp/layout.html.twig' %}
+
+{% block preheader %}Répondez avant le {{ expires_at }}.{% endblock %}
+
+{% block content %}
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'h1',
+    content: dto.surveyTitle|e
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'p',
+    content: 'Bonjour,<br>Vous êtes invité(e) à répondre à ce questionnaire. Votre participation ne prend que quelques minutes.'
+  } only %}
+
+  {% if dto.surveyDescription %}
+    {% include '@CorePhp/components/_box.html.twig' with {
+      content: dto.surveyDescription|e|nl2br
+    } only %}
+  {% endif %}
+
+  {% include '@CorePhp/components/_details.html.twig' with {
+    rows: [
+      { label: 'Nombre de questions', value: dto.questionsCount },
+      { label: 'Date limite de réponse', value: expires_at }
+    ]
+  } only %}
+
+  {% include '@CorePhp/components/_button.html.twig' with {
+    url: dto.surveyUrl,
+    label: 'Répondre au questionnaire',
+    size: 'lg'
+  } only %}
+
+  {% include '@CorePhp/components/_alert.html.twig' with {
+    type: 'info',
+    title: 'Lien personnel',
+    content: 'Ce lien vous est réservé et ne permet qu\'<strong>une seule participation</strong>. Ne le transférez pas.'
+  } only %}
+
+  {% include '@CorePhp/components/_divider.html.twig' only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'small',
+    content: 'Lien direct : ' ~ (dto.surveyUrl|e)
+  } only %}
+{% endblock %}

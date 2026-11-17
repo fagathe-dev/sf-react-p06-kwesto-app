@@ -1,0 +1,14 @@
+// ==========================================================================
+// Site vitrine kwesto — point d'entrée (compilé vers public/css/ds-site.css)
+// --------------------------------------------------------------------------
+// abstracts/   outils sans sortie CSS (primitives, mixins)
+// foundation/  polices, variables CSS, reset, typographie
+// layout/      conteneurs, en-tête, pied de page, sections
+// components/  boutons, cartes, accordéons, onglets, formulaires, consentement
+// pages/       styles propres à une page
+// ==========================================================================
+
+@use 'foundation';
+@use 'layout';
+@use 'components';
+@use 'pages';

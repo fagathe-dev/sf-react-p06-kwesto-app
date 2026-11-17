@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<section class="page-hero">
+    <div class="container">
+        <p class="eyebrow">Cas d'usage</p>
+        <h1>Une campagne, un objectif, des réponses exploitables</h1>
+        <p class="lead">Trois façons dont les équipes utilisent kwesto au quotidien.</p>
+    </div>
+</section>
+
+<section class="section" id="enquetes-internes" aria-labelledby="internal-title">
+    <div class="container split">
+        <div>
+            <p class="eyebrow">Ressources humaines · Direction</p>
+            <h2 id="internal-title">Enquêtes internes et baromètres</h2>
+            <p>Mesurez l'engagement, la qualité de vie au travail ou l'accueil des nouveaux outils. Chaque collaborateur répond une seule fois ; les résultats sont figés à la clôture pour comparer d'une année sur l'autre.</p>
+            <ul class="check-list">
+                <li>Questionnaire en étapes pour guider les répondants.</li>
+                <li>Relance automatique des retardataires avant l'échéance.</li>
+                <li>Répartition des réponses et verbatims recherchables.</li>
+            </ul>
+        </div>
+        <div class="quote-card">
+            <blockquote>« Nous sommes passés de 41 % à 73 % de participation à notre baromètre annuel, sans relancer personne à la main. »</blockquote>
+            <p>— Responsable RH, PME industrielle</p>
+        </div>
+    </div>
+</section>
+
+<section class="section section--alt" id="collecte-dossiers" aria-labelledby="files-title">
+    <div class="container split">
+        <div>
+            <p class="eyebrow">Appels à projets · Candidatures · Administratif</p>
+            <h2 id="files-title">Collecte de dossiers et de pièces jointes</h2>
+            <p>Recueillez des informations structurées et les justificatifs qui vont avec : business plan, pièces d'identité, devis. Les formats et le poids sont contrôlés au dépôt.</p>
+            <ul class="check-list">
+                <li>Formats autorisés au choix : PDF, images, tableurs…</li>
+                <li>Jusqu'à {{ site.upload_max_mb }} Mo par fichier, plusieurs fichiers par question.</li>
+                <li>Téléchargement groupé de tous les dossiers en .zip, rangés par question et par candidat.</li>
+            </ul>
+        </div>
+        <div class="quote-card">
+            <blockquote>« Plus de pièces jointes perdues dans les boîtes mail : tout arrive au même endroit, au bon format. »</blockquote>
+            <p>— Chargée de programme, incubateur</p>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="evaluations-formation" aria-labelledby="training-title">
+    <div class="container split">
+        <div>
+            <p class="eyebrow">Organismes de formation · Formation interne</p>
+            <h2 id="training-title">Évaluations post-formation</h2>
+            <p>Envoyez l'évaluation à chaud à la fin de la session, et obtenez des notes, des taux de satisfaction et des suggestions prêtes à partager avec les formateurs.</p>
+            <ul class="check-list">
+                <li>Notes décimales sur 20, moyenne, médiane et écart-type.</li>
+                <li>Clôture automatique quand tous les stagiaires ont répondu.</li>
+                <li>Export CSV pour vos indicateurs qualité.</li>
+            </ul>
+        </div>
+        <div class="quote-card">
+            <blockquote>« Les évaluations sont remplies en moyenne en 2 minutes 30, sur téléphone pour la moitié des stagiaires. »</blockquote>
+            <p>— Directeur pédagogique, organisme de formation</p>
+        </div>
+    </div>
+</section>
+
+{% include 'partials/_cta.html.twig' with { title: 'Un cas d\'usage en tête ?', text: 'Décrivez-nous votre besoin : nous vous montrons comment le mettre en place en quelques minutes.' } %}
+{% endblock %}

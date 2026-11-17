@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+
+{% set faq = [
+    { question: 'Mes participants doivent-ils créer un compte ?', answer: 'Non. Chaque destinataire reçoit un lien personnel par e-mail qui lui donne accès au formulaire, sans compte ni mot de passe.' },
+    { question: 'Une personne peut-elle répondre deux fois ?', answer: 'Non. Le lien est à usage unique : après l\'envoi, il affiche la date de la réponse et le formulaire n\'est plus accessible, même en cas de rafraîchissement ou d\'onglet parallèle.' },
+    { question: 'Puis-je modifier un questionnaire après l\'avoir diffusé ?', answer: 'Les questions sont verrouillées dès la validation, pour garantir la cohérence des statistiques. Vous pouvez dupliquer le questionnaire pour en créer une nouvelle version.' },
+    { question: 'Quelle est la taille maximale des fichiers déposés ?', answer: 'Jusqu\'à ' ~ site.upload_max_mb ~ ' Mo par fichier sur la plateforme ; vous pouvez fixer une limite plus basse pour chaque question.' },
+    { question: 'Comment fonctionnent les relances ?', answer: 'Entre 5 et 4 jours avant la date limite, si au plus 20 % des destinataires ont répondu et que la campagne a été lancée depuis au moins 48 heures, kwesto envoie un rappel unique aux personnes qui n\'ont pas répondu et vous prévient.' },
+    { question: 'Que deviennent les données de mes participants ?', answer: 'Elles sont hébergées en France. Les adresses IP sont anonymisées de façon irréversible 30 jours après la clôture ; seules des statistiques agrégées (navigateur, système, appareil) sont conservées.' },
+] %}
+
+{% block structured_data %}
+    <script type="application/ld+json">
+        {{- {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: faq|map(item => { '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })
+        }|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE'))|raw -}}
+    </script>
+{% endblock %}
+
+{% block javascripts %}<script type="module" src="{{ asset('js/pages/pricing.js') }}"></script>{% endblock %}
+
+{% block body %}
+<section class="page-hero">
+    <div class="container">
+        <p class="eyebrow">Tarifs</p>
+        <h1>Des offres simples, sans engagement</h1>
+        <p class="lead">Commencez gratuitement, passez à l'offre supérieure quand vos campagnes grandissent.</p>
+    </div>
+</section>
+
+<section class="section" aria-labelledby="plans-title">
+    <div class="container">
+        <h2 class="visually-hidden" id="plans-title">Offres</h2>
+        <div class="plans">
+            <article class="plan">
+                <h3>Découverte</h3>
+                <p class="plan__price"><strong>0 €</strong> / mois</p>
+                <p class="plan__desc">Pour tester kwesto sur une première campagne.</p>
+                <ul class="check-list">
+                    <li>3 questionnaires actifs</li>
+                    <li>100 destinataires par campagne</li>
+                    <li>7 types de questions et sections</li>
+                    <li>Statistiques et export CSV</li>
+                </ul>
+                <a class="btn btn--ghost btn--block" href="{{ app_url('/login') }}">Commencer</a>
+            </article>
+            <article class="plan plan--featured" aria-label="Offre Équipe, la plus choisie">
+                <p class="plan__badge">La plus choisie</p>
+                <h3>Équipe</h3>
+                <p class="plan__price"><strong>29 €</strong> HT / mois</p>
+                <p class="plan__desc">Pour les équipes qui diffusent régulièrement.</p>
+                <ul class="check-list">
+                    <li>Questionnaires illimités</li>
+                    <li>2 000 destinataires par campagne</li>
+                    <li>Relances automatiques</li>
+                    <li>Questions fichier et archive .zip</li>
+                </ul>
+                <a class="btn btn--primary btn--block" href="{{ app_url('/login') }}">Essayer 30 jours</a>
+            </article>
+            <article class="plan">
+                <h3>Organisation</h3>
+                <p class="plan__price"><strong>Sur devis</strong></p>
+                <p class="plan__desc">Volumes importants, besoins spécifiques, accompagnement.</p>
+                <ul class="check-list">
+                    <li>Destinataires illimités</li>
+                    <li>Plusieurs créateurs et administrateurs</li>
+                    <li>Accompagnement au lancement</li>
+                    <li>Engagement de service</li>
+                </ul>
+                <a class="btn btn--ghost btn--block" href="{{ path('app_contact') }}">Nous contacter</a>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="section section--alt" aria-labelledby="faq-title">
+    <div class="container container--narrow">
+        <h2 class="section__title" id="faq-title">Questions fréquentes</h2>
+        {% include 'partials/_faq.html.twig' with { faq: faq } %}
+    </div>
+</section>
+
+{% include 'partials/_cta.html.twig' %}
+{% endblock %}

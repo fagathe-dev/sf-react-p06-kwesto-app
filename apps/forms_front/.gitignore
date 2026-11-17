@@ -1,23 +1,24 @@
-
 ###> symfony/framework-bundle ###
 /.env.local
 /.env.local.php
 /.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
 /public/bundles/
-/migrations/
 /var/
 /vendor/
 ###< symfony/framework-bundle ###
+
+###> assets compilés (npm run build) ###
+/node_modules/
+/public/css/
+/public/js/
+###< assets compilés ###
+
+###> fagathe-dev/core-php ###
+/logs/
+###< fagathe-dev/core-php ###
 
 ###> phpunit/phpunit ###
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
-
-###> symfony/asset-mapper ###
-/public/assets/
-/assets/vendor/
-###< symfony/asset-mapper ###
-
-/.env

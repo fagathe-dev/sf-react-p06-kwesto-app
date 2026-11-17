@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{% block javascripts %}<script type="module" src="{{ asset('js/pages/home.js') }}"></script>{% endblock %}
+
+{% block body %}
+<section class="page-hero">
+    <div class="container">
+        <p class="eyebrow">Fonctionnalités</p>
+        <h1>Tout ce qu'il faut pour une campagne fiable, de bout en bout</h1>
+        <p class="lead">Conception, diffusion nominative, relances automatiques et statistiques consolidées, dans un seul outil.</p>
+    </div>
+</section>
+
+<section class="section" aria-labelledby="types-title">
+    <div class="container">
+        <h2 class="section__title" id="types-title">Les 7 types de questions</h2>
+        {% include 'partials/_question_types_tabs.html.twig' %}
+    </div>
+</section>
+
+<section class="section section--alt" aria-labelledby="link-title">
+    <div class="container split">
+        <div>
+            <h2 id="link-title">Un lien unique par destinataire</h2>
+            <p>Chaque personne reçoit par e-mail un lien personnel. Il donne accès au formulaire sans compte ni mot de passe, et n'accepte qu'une seule soumission.</p>
+            <ul class="check-list">
+                <li>Écran dédié si le lien est invalide, si le questionnaire est clôturé ou si la personne a déjà répondu.</li>
+                <li>Enregistrement atomique : toutes les réponses, ou aucune.</li>
+                <li>Accusé de réception horodaté envoyé automatiquement.</li>
+                <li>Suivi par destinataire : envoyé, ouvert, répondu, adresse rejetée.</li>
+            </ul>
+        </div>
+        <div class="callout">
+            <p class="callout__label">Lien personnel</p>
+            <p class="callout__code">app.kwesto.fr/s/<span>9f2c…e41a</span></p>
+            <button class="btn btn--ghost btn--sm" type="button" data-copy="app.kwesto.fr/s/9f2c…e41a">Copier l'exemple</button>
+        </div>
+    </div>
+</section>
+
+<section class="section" aria-labelledby="reminders-title">
+    <div class="container split">
+        <div>
+            <h2 id="reminders-title">Des relances qui travaillent pour vous</h2>
+            <p>Quatre à cinq jours avant l'échéance, si moins de 20 % des destinataires ont répondu, kwesto relance automatiquement ceux qui n'ont pas encore participé — une seule fois, pour ne jamais être insistant — et vous prévient.</p>
+        </div>
+        <div>
+            <h2>Une clôture automatique</h2>
+            <p>Le questionnaire se ferme dès que tous les destinataires valides ont répondu, ou à la date limite. Vous pouvez aussi le clôturer à tout moment.</p>
+        </div>
+    </div>
+</section>
+
+<section class="section section--alt" aria-labelledby="stats-title">
+    <div class="container">
+        <h2 class="section__title" id="stats-title">Des statistiques consolidées</h2>
+        <div class="features-grid">
+            <article class="feature"><h3>Indicateurs globaux</h3><p>Taux de participation, ouvertures sans réponse, temps moyen de remplissage, répartition par appareil, navigateur et système.</p></article>
+            <article class="feature"><h3>Question par question</h3><p>Une analyse adaptée à chaque type : barres, histogrammes, médianes, distributions chronologiques, verbatims.</p></article>
+            <article class="feature"><h3>Exports</h3><p>Réponses brutes en CSV compatible Excel, une ligne par destinataire, et archive .zip de tous les fichiers déposés.</p></article>
+            <article class="feature"><h3>Recherche plein texte</h3><p>Retrouvez un questionnaire, une question, un destinataire ou une réponse en quelques lettres.</p></article>
+        </div>
+    </div>
+</section>
+
+{% include 'partials/_cta.html.twig' %}
+{% endblock %}

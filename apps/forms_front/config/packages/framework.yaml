@@ -1,15 +1,36 @@
-# see https://symfony.com/doc/current/reference/configuration/framework.html
 framework:
     secret: '%env(APP_SECRET)%'
 
-    # Note that the session will be started ONLY if you read or write from it.
+    # Site public indexable, y compris en mode debug (Symfony ajoute sinon X-Robots-Tag: noindex)
+    disallow_search_engine_index: false
+
+    # Session : jeton CSRF du formulaire de contact uniquement
     session: true
 
-    #esi: true
-    #fragments: true
+    trusted_proxies: '%env(default::TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix']
+
+    # Les fichiers compilés (public/css, public/js) sont servis tels quels : symfony/asset seul, sans AssetMapper
+    assets:
+        version_strategy: App\Asset\FileMtimeVersionStrategy
+
+    rate_limiter:
+        contact_form:
+            policy: sliding_window
+            limit: 5
+            interval: '15 minutes'
 
 when@test:
     framework:
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+        # Limiteurs en mémoire : chaque exécution des tests repart de zéro
+        rate_limiter:
+            contact_form:
+                policy: sliding_window
+                limit: 5
+                interval: '15 minutes'
+                cache_pool: cache.app
+        cache:
+            app: cache.adapter.array

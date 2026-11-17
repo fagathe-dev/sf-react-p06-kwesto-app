@@ -1,0 +1,39 @@
+{# CREATOR_LOW_RESPONSE — alerte de faible participation (specs_fonc §8) #}
+{% extends '@CorePhp/layout.html.twig' %}
+
+{% block preheader %}{{ dto.responseRate|number_format(1, ',', ' ') }} % de réponses : des relances viennent de partir.{% endblock %}
+
+{% block content %}
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'h1',
+    content: 'Participation faible sur votre questionnaire'
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'p',
+    content: 'Bonjour <strong>' ~ (dto.creatorName|e) ~ '</strong>,<br>Le questionnaire <strong>' ~ (dto.surveyTitle|e) ~ '</strong> arrive bientôt à échéance et peu de destinataires ont répondu.'
+  } only %}
+
+  {% include '@CorePhp/components/_alert.html.twig' with {
+    type: 'warning',
+    title: 'Taux de réponse : ' ~ dto.responseRate|number_format(1, ',', ' ') ~ ' %',
+    content: (dto.answeredCount|e) ~ ' réponse(s) sur ' ~ (dto.invitedCount|e) ~ ' destinataire(s) valide(s).'
+  } only %}
+
+  {% include '@CorePhp/components/_details.html.twig' with {
+    rows: [
+      { label: 'Relances envoyées', value: dto.remindersSent },
+      { label: 'Date limite de réponse', value: expires_at }
+    ]
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'p',
+    content: 'Un rappel a été envoyé automatiquement à chaque destinataire qui n\'a pas encore répondu. Cette relance n\'a lieu qu\'une seule fois par campagne.'
+  } only %}
+
+  {% include '@CorePhp/components/_button.html.twig' with {
+    url: dto.recipientsUrl,
+    label: 'Voir le suivi des destinataires'
+  } only %}
+{% endblock %}

@@ -1,0 +1,39 @@
+doctrine:
+    dbal:
+        url: '%env(resolve:DATABASE_URL)%'
+        # Les index FULLTEXT de forms-core exigent MySQL / MariaDB (InnoDB), voir specs_tech §3.5
+        charset: utf8mb4
+        default_table_options:
+            charset: utf8mb4
+            collation: utf8mb4_unicode_ci
+        profiling_collect_backtrace: '%kernel.debug%'
+    orm:
+        validate_xml_mapping: true
+        naming_strategy: doctrine.orm.naming_strategy.underscore
+        auto_mapping: true
+        # Le mapping des entités FormsCore\Entity et la fonction DQL MATCH_AGAINST sont
+        # déclarés par FormsCoreBundle (prependExtension) : rien à ajouter ici.
+        mappings: {}
+
+when@test:
+    doctrine:
+        dbal:
+            dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+
+when@prod:
+    doctrine:
+        orm:
+            query_cache_driver:
+                type: pool
+                pool: doctrine.system_cache_pool
+            result_cache_driver:
+                type: pool
+                pool: doctrine.result_cache_pool
+
+    framework:
+        cache:
+            pools:
+                doctrine.result_cache_pool:
+                    adapter: cache.app
+                doctrine.system_cache_pool:
+                    adapter: cache.system

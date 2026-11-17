@@ -1,0 +1,19 @@
+# Chaque application a son propre .gitignore (vendor/, node_modules/, var/, logs/, .env.local, clés JWT…).
+
+# Secrets locaux, où qu'ils soient
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Fichiers temporaires
+*.log
+tmp.md

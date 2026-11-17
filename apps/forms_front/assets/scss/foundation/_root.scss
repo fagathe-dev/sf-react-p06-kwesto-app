@@ -1,0 +1,55 @@
+@use 'sass:map';
+@use '../abstracts' as *;
+
+:root {
+  color-scheme: light;
+
+  --color-primary: #{map.get($indigo, 700)};
+  --color-primary-hover: #{map.get($indigo, 800)};
+  --color-primary-soft: #{map.get($indigo, 50)};
+  --color-primary-border: #{map.get($indigo, 200)};
+  --color-accent: #{map.get($indigo, 500)};
+
+  --color-text: #{map.get($slate, 800)};
+  --color-heading: #{map.get($slate, 900)};
+  --color-muted: #{map.get($slate, 600)};
+  --color-border: #{map.get($slate, 200)};
+  --color-border-strong: #{map.get($slate, 300)};
+  --color-surface: #ffffff;
+  --color-surface-alt: #{map.get($slate, 50)};
+  --color-surface-strong: #{map.get($slate, 100)};
+  --color-dark: #{map.get($slate, 900)};
+
+  // Encart d'aide contextuelle : bleu clair, texte bleu foncé (specs_fonc §3.2)
+  --color-help-bg: #{$blue-100};
+  --color-help-text: #{$blue-900};
+
+  --color-success: #{$green-700};
+  --color-success-soft: #{$green-100};
+  --color-danger: #{$red-700};
+  --color-danger-soft: #{$red-100};
+
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 9999px;
+
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 6%), 0 1px 3px rgb(15 23 42 / 8%);
+  --shadow-md: 0 8px 24px rgb(15 23 42 / 8%), 0 2px 6px rgb(15 23 42 / 6%);
+  --shadow-lg: 0 24px 48px rgb(49 46 129 / 16%);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --space-9: 6rem;
+
+  --header-height: 72px;
+}

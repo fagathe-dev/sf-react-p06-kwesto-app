@@ -1,0 +1,40 @@
+{
+    "name": "fagathe-dev/forms-core",
+    "description": "Cœur métier partagé de kwesto : entités, repositories, enums, DTO et services (questionnaires, diffusion, réponses, statistiques).",
+    "type": "symfony-bundle",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.4",
+        "ext-mbstring": "*",
+        "beberlei/doctrineextensions": "^1.5",
+        "doctrine/doctrine-bundle": "^3.0",
+        "doctrine/orm": "^3.6",
+        "fagathe-dev/core-php": "^1.1",
+        "maennchen/zipstream-php": "^3.1",
+        "symfony/clock": "^8.1",
+        "symfony/config": "^8.1",
+        "symfony/dependency-injection": "^8.1",
+        "symfony/filesystem": "^8.1",
+        "symfony/finder": "^8.1",
+        "symfony/http-foundation": "^8.1",
+        "symfony/http-kernel": "^8.1",
+        "symfony/mailer": "^8.1",
+        "symfony/messenger": "^8.1",
+        "symfony/mime": "^8.1",
+        "symfony/security-bundle": "^8.1",
+        "symfony/serializer": "^8.1",
+        "symfony/twig-bundle": "^8.1",
+        "symfony/uid": "^8.1",
+        "symfony/validator": "^8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "FormsCore\\": "src/"
+        }
+    },
+    "extra": {
+        "symfony": {
+            "bundle": "FormsCore\\FormsCoreBundle"
+        }
+    }
+}

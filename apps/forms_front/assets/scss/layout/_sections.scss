@@ -1,0 +1,39 @@
+@use '../abstracts' as *;
+
+.section {
+  padding: var(--space-8) 0;
+
+  @include up(lg) {
+    padding: var(--space-9) 0;
+  }
+
+  &--alt {
+    background: var(--color-surface-alt);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  &__title {
+    max-width: 30ch;
+    margin-bottom: var(--space-3);
+  }
+
+  &__lead {
+    max-width: 62ch;
+    margin-bottom: var(--space-6);
+    color: var(--color-muted);
+  }
+}
+
+.page-hero {
+  padding: var(--space-8) 0 var(--space-6);
+  background: radial-gradient(circle at 15% 0%, var(--color-primary-soft), transparent 55%), var(--color-surface);
+
+  h1 {
+    max-width: 22ch;
+  }
+
+  &--compact {
+    padding-bottom: 0;
+  }
+}

@@ -1,0 +1,43 @@
+{# Vitrine du layout et des composants prédéfinis de core-php (prévisualisation admin) #}
+{% extends '@CorePhp/layout.html.twig' %}
+
+{% block preheader %}Layout et composants d'e-mail de core-php.{% endblock %}
+
+{% block content %}
+  {% include '@CorePhp/components/_text.html.twig' with { level: 'h1', content: dto.headline|e } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'p',
+    content: 'Cet aperçu regroupe le layout <code>@CorePhp/layout.html.twig</code> et les composants de <code>@CorePhp/components/</code> utilisés par tous les e-mails de kwesto.'
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with { level: 'h2', content: 'Textes' } only %}
+  {% include '@CorePhp/components/_text.html.twig' with { level: 'h3', content: 'Titre de niveau 3' } only %}
+  {% include '@CorePhp/components/_text.html.twig' with { level: 'p', content: 'Paragraphe courant avec un ' ~ include('@CorePhp/components/_link.html.twig', { url: 'https://example.com', label: 'lien' }, with_context = false) ~ '.' } only %}
+  {% include '@CorePhp/components/_text.html.twig' with { level: 'small', content: 'Texte secondaire atténué.' } only %}
+
+  {% include '@CorePhp/components/_divider.html.twig' only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with { level: 'h2', content: 'Boutons' } only %}
+  {% include '@CorePhp/components/_button.html.twig' with { url: 'https://example.com', label: 'Bouton principal' } only %}
+  {% include '@CorePhp/components/_button.html.twig' with { url: 'https://example.com', label: 'Bouton secondaire', variant: 'soft' } only %}
+  {% include '@CorePhp/components/_button.html.twig' with { url: 'https://example.com', label: 'Bouton contour', variant: 'outline' } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with { level: 'h2', content: 'Alertes' } only %}
+  {% include '@CorePhp/components/_alert.html.twig' with { type: 'info', title: 'Information', content: 'Message d\'information.' } only %}
+  {% include '@CorePhp/components/_alert.html.twig' with { type: 'success', title: 'Succès', content: 'Opération réussie.' } only %}
+  {% include '@CorePhp/components/_alert.html.twig' with { type: 'warning', title: 'Attention', content: 'Point de vigilance.' } only %}
+  {% include '@CorePhp/components/_alert.html.twig' with { type: 'danger', title: 'Erreur', content: 'Une erreur est survenue.' } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with { level: 'h2', content: 'Contenus structurés' } only %}
+  {% include '@CorePhp/components/_details.html.twig' with {
+    rows: [
+      { label: 'Libellé', value: 'Valeur' },
+      { label: 'Référence', value: 'KW-2026-0042', mono: true }
+    ]
+  } only %}
+  {% include '@CorePhp/components/_code.html.twig' with { code: '482 913', label: 'Code à usage unique' } only %}
+  {% include '@CorePhp/components/_list.html.twig' with { items: ['Premier élément', 'Deuxième élément', 'Troisième élément'] } only %}
+  {% include '@CorePhp/components/_box.html.twig' with { content: 'Surface tonale (box) pour isoler un contenu.' } only %}
+  {% include '@CorePhp/components/_card.html.twig' with { content: 'Carte (card) pour regrouper des informations.' } only %}
+{% endblock %}

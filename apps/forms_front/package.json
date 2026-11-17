@@ -1,0 +1,30 @@
+{
+  "name": "forms_front",
+  "private": true,
+  "version": "1.0.0",
+  "description": "kwesto — site vitrine (assets TypeScript et SCSS compilés par esbuild et sass)",
+  "scripts": {
+    "build:ts": "node scripts/compile-ts.js --mode build",
+    "build:scss": "node scripts/compile-scss.js --mode build",
+    "build": "concurrently --kill-others-on-fail -n ts,scss -c blue,magenta \"npm:build:ts\" \"npm:build:scss\"",
+    "compile:ts": "node scripts/compile-ts.js",
+    "compile:scss": "node scripts/compile-scss.js",
+    "compile": "concurrently --kill-others-on-fail -n ts,scss -c blue,magenta \"npm:compile:ts\" \"npm:compile:scss\"",
+    "dev:ts": "node scripts/compile-ts.js --watch",
+    "dev:scss": "node scripts/compile-scss.js --watch",
+    "dev": "concurrently -n ts,scss -c blue,magenta \"npm:dev:ts\" \"npm:dev:scss\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "esbuild": "^0.28.0",
+    "sass": "^1.99.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "core-ts": "github:fagathe-dev/core-ts#master"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "@parcel/watcher": false
+  }
+}

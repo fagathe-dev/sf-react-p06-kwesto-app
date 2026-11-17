@@ -1,0 +1,19 @@
+{#
+  FAQ en accordéons (assets/ts/components/accordion.ts). Sans JavaScript, toutes les réponses restent lisibles.
+  `faq` : liste de { question, answer } ; les mêmes entrées alimentent le JSON-LD FAQPage de la page.
+#}
+<div class="accordion" data-accordion>
+    {% for item in faq %}
+        <div class="accordion__item">
+            <h3 class="accordion__heading">
+                <button class="accordion__trigger" type="button" id="faq-q-{{ loop.index }}" aria-expanded="false" aria-controls="faq-a-{{ loop.index }}" data-accordion-trigger>
+                    {{ item.question }}
+                    <span class="accordion__icon" aria-hidden="true"></span>
+                </button>
+            </h3>
+            <div class="accordion__panel" id="faq-a-{{ loop.index }}" role="region" aria-labelledby="faq-q-{{ loop.index }}">
+                <p>{{ item.answer }}</p>
+            </div>
+        </div>
+    {% endfor %}
+</div>

@@ -1,0 +1,36 @@
+{# CREATOR_SURVEY_CLOSED — notification de clôture (specs_fonc §8) #}
+{% extends '@CorePhp/layout.html.twig' %}
+
+{% block preheader %}Taux final : {{ dto.finalRate|number_format(1, ',', ' ') }} %. Les statistiques sont consolidées.{% endblock %}
+
+{% block content %}
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'h1',
+    content: 'Votre questionnaire est clôturé'
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'p',
+    content: 'Bonjour <strong>' ~ (dto.creatorName|e) ~ '</strong>,<br>Le questionnaire <strong>' ~ (dto.surveyTitle|e) ~ '</strong> n\'accepte plus de réponses.'
+  } only %}
+
+  {% include '@CorePhp/components/_details.html.twig' with {
+    rows: [
+      { label: 'Motif de clôture', value: dto.closeReason },
+      { label: 'Taux de participation final', value: dto.finalRate|number_format(1, ',', ' ') ~ ' %' },
+      { label: 'Réponses reçues', value: dto.answeredCount ~ ' sur ' ~ dto.invitedCount }
+    ]
+  } only %}
+
+  {% include '@CorePhp/components/_alert.html.twig' with {
+    type: 'success',
+    title: 'Statistiques consolidées',
+    content: 'Les résultats sont désormais figés : vous pouvez les consulter et exporter les réponses.'
+  } only %}
+
+  {% include '@CorePhp/components/_button.html.twig' with {
+    url: dto.statsUrl,
+    label: 'Consulter les statistiques',
+    size: 'lg'
+  } only %}
+{% endblock %}

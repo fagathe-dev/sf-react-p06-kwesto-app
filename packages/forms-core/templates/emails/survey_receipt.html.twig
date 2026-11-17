@@ -1,0 +1,34 @@
+{# SURVEY_RECEIPT — accusé de réception horodaté (specs_fonc §8) #}
+{% extends '@CorePhp/layout.html.twig' %}
+
+{% block preheader %}Vos réponses sont enregistrées définitivement.{% endblock %}
+
+{% block content %}
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'h1',
+    content: 'Merci pour votre participation'
+  } only %}
+
+  {% include '@CorePhp/components/_alert.html.twig' with {
+    type: 'success',
+    title: 'Réponses enregistrées',
+    content: 'Vos réponses au questionnaire <strong>' ~ (dto.surveyTitle|e) ~ '</strong> ont bien été reçues.'
+  } only %}
+
+  {% include '@CorePhp/components/_details.html.twig' with {
+    rows: [
+      { label: 'Questionnaire', value: dto.surveyTitle },
+      { label: 'Reçu le', value: submitted_at }
+    ]
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'p',
+    content: 'Cet enregistrement est <strong>définitif</strong> : votre lien personnel est désormais verrouillé et ne permet plus de modifier ni de renvoyer vos réponses.'
+  } only %}
+
+  {% include '@CorePhp/components/_text.html.twig' with {
+    level: 'small',
+    content: 'Conservez cet e-mail comme accusé de réception.'
+  } only %}
+{% endblock %}

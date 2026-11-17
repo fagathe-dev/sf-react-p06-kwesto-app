@@ -7,8 +7,8 @@
 
 1. [Vision du produit et rôles](#1-vision-du-produit-et-rôles)
 2. [Cycle de vie d'un questionnaire](#2-cycle-de-vie-dun-questionnaire)
-3. [Module 1 — Conception du questionnaire](#3-module-1--conception-du-questionnaire-builder)
-4. [Les 5 types de questions](#4-les-5-types-de-questions)
+3. [Module 1 — Conception du questionnaire](#3-module-1--conception-du-questionnaire-builder) (dont affichage conditionnel, §3.5)
+4. [Les 7 types de questions](#4-les-7-types-de-questions)
 5. [Module 2 — Liste de diffusion et planification](#5-module-2--liste-de-diffusion-et-planification)
 6. [Module 3 — Interface participant et télémétrie](#6-module-3--interface-participant-unicité-et-télémétrie)
 7. [Module 4 — Clôture et statistiques](#7-module-4--clôture-automatique-et-statistiques-consolidées)
@@ -44,7 +44,7 @@ Machine à états stricte à quatre statuts :
 
 ### Règle d'immutabilité
 
-Dès `VALIDATED`, il est impossible d'ajouter, supprimer, réordonner ou modifier le type et les règles de validation d'une question. Cela garantit l'intégrité mathématique des statistiques consolidées.
+Dès `VALIDATED`, il est impossible d'ajouter, supprimer, réordonner ou modifier le type, les règles de validation ou la condition d'affichage (§3.5) d'une question. Cela garantit l'intégrité mathématique des statistiques consolidées.
 
 ---
 
@@ -65,11 +65,14 @@ Tant que le statut est `DRAFT`, le nombre de questions est illimité.
 
 | Propriété | Type | Règle |
 | :--- | :--- | :--- |
-| `label` | texte | Obligatoire |
+| `label` | texte **Markdown en ligne**, max 500 car. | Obligatoire. Gras, italique, barré, surligné, code, lien (rendu dans un `<label>` : pas de titres, listes ni images) |
 | `helpTitle` | texte, max 80 car. | Optionnel. Titre de l'encart d'aide (ex. : « À savoir »). Ignoré si `helpText` est vide |
-| `helpText` | texte | Optionnel. Texte d'aide / précision explicative (voir « Aide contextuelle » ci-dessous) |
-| `required` | booléen | `true` par défaut |
+| `helpText` | texte **Markdown** | Optionnel. Texte d'aide / précision explicative (voir « Aide contextuelle » ci-dessous) |
+
+**Markdown (intitulé et aide).** Saisi avec l'éditeur Markdown de `core-react` (barre d'outils, onglet Aperçu). Rendu sûr : aucun HTML interprété, seuls les liens `http(s)`, `mailto` et relatifs sont actifs (nouvel onglet, `rel="noopener noreferrer nofollow"`), pas d'images. Là où il faut du texte brut (export CSV / Excel, dossiers de l'archive ZIP, recherche, ligne repliée du builder, listes de questions sources, annonces aux lecteurs d'écran), le Markdown est retiré (`FormsCore\Util\MarkdownText`, `forms_bo/src/ui/markdownText.ts`).
+| `required` | booléen | `true` par défaut. Pour une question conditionnelle, obligatoire **uniquement si elle est affichée** (§3.5) |
 | `position` | entier | ≥ 1, séquentiel, démarre à `1` |
+| `displayCondition` | objet, optionnel | Condition d'affichage portant sur une question **précédente** (§3.5). Absent = question toujours affichée |
 
 **Aide contextuelle**
 
@@ -79,7 +82,7 @@ Une question peut afficher une aide pour préciser son sens (ex. : « Qu'est-ce 
 | :--- | :--- |
 | Icône | Icône « info » (ⓘ), toujours présente |
 | Titre | `helpTitle`, optionnel, en gras |
-| Texte | `helpText`, texte simple (paragraphes, retours à la ligne), pas de HTML arbitraire |
+| Texte | `helpText` en Markdown (paragraphes, retours à la ligne, listes, citations, liens, gras…), pas de HTML arbitraire |
 | Style | Un seul style : encart teinté bleu clair, coins arrondis, texte bleu foncé. Aucune variante de couleur ni de mode (pas d'infobulle, pas de boîte de dialogue) |
 | Boutons | Aucun (pas d'action, pas de fermeture) |
 
@@ -98,6 +101,7 @@ Règles :
 ### 3.3 Validation du questionnaire
 
 * L'action « Valider le questionnaire » exige au moins **1 question** et une configuration valide pour chacune (ex. : au moins 2 options pour une question à choix).
+* Chaque condition d'affichage doit être valide (§3.5) : question source existante et située avant, opérateur compatible avec son type, valeur cohérente (ex. : option toujours présente dans la question source).
 * Le questionnaire passe alors en `VALIDATED` et le créateur est redirigé vers la configuration de la diffusion.
 
 ### 3.4 Sections et formulaire en étapes (stepper)
@@ -109,18 +113,73 @@ Comme dans Google Forms, le créateur peut **découper son questionnaire en sect
 | Activation | Action « Ajouter une section » dans le builder. Le formulaire ne devient un parcours par étapes (**stepper**) **que s'il compte au moins 2 sections**. |
 | Section | `title` (obligatoire, 3 à 150 caractères), `description` (optionnelle), `position` (entier ≥ 1) |
 | Contenu | Chaque question appartient à exactement une section. Au moins **1 question** par section. |
-| Réorganisation | Drag-and-drop des sections entre elles et des questions au sein d'une section ou **d'une section à l'autre**. |
+| Réorganisation | Drag-and-drop des sections entre elles et des questions au sein d'une section ou **d'une section à l'autre**, dans le respect de l'ordre des conditions d'affichage (§3.5). |
 | Passage à 1 seule section | Si le créateur supprime des sections jusqu'à n'en garder qu'une, le formulaire redevient une page unique. |
 | Validation du questionnaire | En plus des règles du §3.3 : chaque section contient au moins 1 question. |
 | Immutabilité | Les sections sont figées dès `VALIDATED` (ajout, suppression, réordonnancement, contenu), comme les questions. |
 
 Le rendu côté participant est décrit au §6.4.
 
+### 3.5 Affichage conditionnel (`displayCondition`)
+
+Une question peut n'être affichée qu'en fonction de la réponse donnée à une question **précédente** (sa question *source*, ou *parente*). Sans condition, la question est toujours affichée.
+
+**Cas d'usage couverts**
+
+| Source | Exemple | Condition |
+| :--- | :--- | :--- |
+| `CHOICE` | Q1 « Civilité » → si `Femme`, afficher Q2 « Nom de jeune fille » | `EQUALS` l'option `Femme` |
+| `CHOICE` → `TEXT` (« Autre ») | Q1 « Comment nous avez-vous connus ? » → si `Autre`, afficher Q2 « Précisez » | `EQUALS` l'option `Autre` |
+| `BOOLEAN` | Q1 « Avez-vous plus de 18 ans ? » → si Oui, afficher les questions suivantes | `EQUALS` `true` |
+| `BOOLEAN` | Q1 « Viendrez-vous accompagné(e) ? » → si Oui, afficher Q2 « Nombre d'accompagnants » | `EQUALS` `true` |
+| `RANGE` | Q2 « Votre note de 1 à 10 » → si inférieure à 5, afficher Q3 « Comment pourrait-on améliorer l'expérience ? » | `LESS_THAN` `5` |
+| `NUMBER` | Q1 « Nombre de participants » → si 2 ou plus, afficher Q2 « Noms des accompagnants » | `GREATER_OR_EQUAL` `2` |
+
+**Sources autorisées (règle de conception).** Une question ne peut être conditionnée **que** par une question :
+* **`BOOLEAN`** (Oui / Non) ;
+* **`CHOICE` à choix unique** : boutons radio (`radio`) ou liste déroulante (`select`) ;
+* **`NUMBER`** (Chiffres) ;
+* **`RANGE`** (Échelle).
+
+Une question `TEXT`, `DATE`, `FILE` ou `CHOICE` à choix multiple (`checkbox`) ne peut **jamais** servir de source. Le builder ne les propose pas ; l'API refuse une telle condition (422 à l'enregistrement de la structure, erreur bloquante à la validation). Si une question source change de type ou passe en choix multiple, les conditions qui en dépendaient sont retirées.
+
+**Structure d'une condition** : une seule condition par question (pas de combinaison ET / OU).
+
+| Élément | Règle |
+| :--- | :--- |
+| Question source | Une question `BOOLEAN`, `CHOICE` à choix unique, `NUMBER` ou `RANGE` du même questionnaire, de position **strictement inférieure** (une question en position 1 ne peut donc pas être conditionnelle) |
+| Opérateur | Selon le type de la source (tableau ci-dessous) |
+| Valeur | Identifiant d'option (`CHOICE`), liste d'identifiants (`IN`), booléen (`BOOLEAN`), nombre (`NUMBER`, `RANGE`) |
+
+| Type de la source | Opérateurs autorisés | Sens |
+| :--- | :--- | :--- |
+| `CHOICE` à choix unique (`radio`, `select`) | `EQUALS`, `NOT_EQUALS`, `IN` | `EQUALS` (« est ») : l'option choisie est celle-ci ; `NOT_EQUALS` (« n'est pas ») : une autre option est choisie ; `IN` (« est l'une de ») : l'option choisie fait partie de la liste |
+| `BOOLEAN` | `EQUALS`, `NOT_EQUALS` | comparaison avec `true` / `false` (libellés « Oui » / « Non » dans le builder) |
+| `NUMBER`, `RANGE` | `EQUALS`, `NOT_EQUALS`, `LESS_THAN`, `LESS_OR_EQUAL`, `GREATER_THAN`, `GREATER_OR_EQUAL` | comparaison numérique (« est égal à », « est différent de », « est inférieur à », « est inférieur ou égal à », « est supérieur à », « est supérieur ou égal à ») ; pour une `RANGE`, la valeur se choisit parmi les crans de l'échelle |
+| `CHOICE` à choix multiple, `TEXT`, `DATE`, `FILE` | — | ne peuvent pas servir de source |
+
+**Évaluation**
+* Une condition est évaluée à partir des réponses du participant, dans l'ordre des positions.
+* Si la question source **n'a pas de réponse** (facultative laissée vide, ou elle-même masquée), la condition est **fausse**, quel que soit l'opérateur : la question dépendante est masquée. Le masquage se propage donc en cascade.
+
+**Invariants**
+1. **Dépendance unidirectionnelle stricte** : `source.position < question.position`, en permanence.
+   * Glisser-déposer : si un déplacement placerait une question conditionnelle au-dessus de sa source (ou la source en dessous de la question), le builder demande confirmation et **retire la condition**, ou annule le déplacement. Une structure enregistrée qui viole la règle est refusée par l'API.
+   * La règle s'applique aussi entre sections : la source peut se trouver dans une section précédente.
+2. **Suppression de la source** : supprimer une question référencée retire automatiquement la condition des questions qui en dépendaient ; elles redeviennent toujours affichées.
+3. **Modification de la source** (en `DRAFT`) : si l'option ou le type visé disparaît, la condition devient invalide ; elle est signalée dans le builder et bloque la validation (§3.3).
+4. **Obligation dynamique** : une question `required` et conditionnelle n'est obligatoire que si sa condition est vraie. Masquée, elle n'exige aucune réponse et toute valeur envoyée pour elle est **ignorée** (jamais enregistrée).
+5. **Immutabilité** : la condition est figée dès `VALIDATED` (§2).
+
+**Builder** : action « Afficher cette question uniquement si… » sur chaque question (sauf la première) : choix de la question source parmi les questions précédentes, de l'opérateur proposé selon son type, puis de la valeur (liste des options pour un `CHOICE`, libellés vrai/faux pour un `BOOLEAN`). Les cartes conditionnelles portent un badge « Conditionnelle — si Q{n} … ».
+
+Le rendu côté participant est décrit au §6.4, les statistiques au §7.2.
+
 ---
 
-## 4. Les 5 types de questions
+## 4. Les 7 types de questions
 
-Le système gère exactement cinq types : `TEXT`, `NUMBER`, `CHOICE`, `DATE`, `FILE`.
+Le système gère exactement sept types : `TEXT`, `NUMBER`, `CHOICE`, `DATE`, `FILE`, `BOOLEAN`, `RANGE`.
 
 ### 4.1 `TEXT` — Zone de texte
 
@@ -165,6 +224,15 @@ Le système gère exactement cinq types : `TEXT`, `NUMBER`, `CHOICE`, `DATE`, `F
 | `multiple` | booléen | `true` si `checkbox`, `false` si `radio` ou `select` |
 | `options` | liste ordonnée `{ id, label }` | Minimum 2 options |
 
+**Builder :** une nouvelle question à choix démarre avec deux options **vides** (« Option 1 », « Option 2 » ne sont que des placeholders).
+
+**Recherche dans les réponses (au moins 10 options) :**
+* `radio` / `checkbox` : un champ « Rechercher parmi N réponses… » filtre la liste (sans tenir compte de la casse ni des accents) ; les réponses déjà cochées restent visibles ; le nombre de réponses affichées est annoncé.
+* `select` : la liste déroulante native est remplacée par une **saisie semi-automatique** (motif ARIA combobox) : on tape quelques lettres, la liste se filtre, flèches + Entrée pour choisir, Échap pour refermer, bouton pour effacer.
+* Le builder l'indique sous la liste des options.
+
+**Aide par défaut (choix multiple) :** sans texte d'aide saisi par le créateur, une question `checkbox` affiche l'encart d'aide « Plusieurs réponses possibles. ». Le texte d'aide du créateur, s'il existe, le remplace.
+
 **Validation :**
 * Chaque identifiant sélectionné doit appartenir aux options de la question.
 * Si `multiple = false`, au plus 1 option sélectionnée.
@@ -204,6 +272,56 @@ Le système gère exactement cinq types : `TEXT`, `NUMBER`, `CHOICE`, `DATE`, `F
 
 La valeur `{limite}` est lue depuis la configuration serveur (jamais codée en dur). Côté participant, la taille effective est affichée près de la zone de dépôt.
 **Statistiques :** nombre total de fichiers, poids cumulé, répartition par format, galerie de prévisualisation, **téléchargement groupé `.zip`**.
+
+### 4.6 `BOOLEAN` — Booléen
+
+**Objectif :** un choix binaire (ex. : « J'ai plus de 18 ans ? », « Je suis… Intéressé / Pas intéressé ») plus rapide à configurer et plus ergonomique qu'un `CHOICE` à deux options.
+
+**Rendu (`widget`) :**
+* `buttons` (défaut) : deux boutons / cartes tactiles mutuellement exclusifs (boutons radio), affichant `trueLabel` et `falseLabel`, pleine largeur sur mobile ;
+* `switch` : un **interrupteur** ; le libellé de la valeur courante est affiché à côté (ex. « Êtes-vous satisfait ? » [ ] Non → [x] Oui).
+
+| Paramètre | Type | Description |
+| :--- | :--- | :--- |
+| `preset` | `'YES_NO' \| 'TRUE_FALSE' \| 'CUSTOM'` | Modèle de libellés ; `YES_NO` par défaut |
+| `trueLabel` | texte, 1 à 80 car. | Libellé de la valeur `true` (obligatoire) |
+| `falseLabel` | texte, 1 à 80 car. | Libellé de la valeur `false` (obligatoire), différent de `trueLabel` |
+| `widget` | `'buttons' \| 'switch'` | Rendu ; `buttons` par défaut |
+| `defaultValue` | `true \| false \| null` | Réponse **présélectionnée** à l'ouverture du formulaire (ex. « Non »), `null` = aucune. Un interrupteur a toujours une valeur : `false` si rien n'est choisi. Une valeur par défaut compte comme une réponse (progression, obligation) ; elle est envoyée si la question est visible. |
+
+**Presets dans le builder**
+
+| Preset | `trueLabel` | `falseLabel` |
+| :--- | :--- | :--- |
+| `YES_NO` (par défaut) | Oui | Non |
+| `TRUE_FALSE` | Vrai | Faux |
+| `CUSTOM` | libre (ex. : Intéressé, J'accepte) | libre (ex. : Pas intéressé, Je refuse) |
+
+Choisir un preset pré-remplit les deux libellés ; ceux-ci restent toujours modifiables, et toute modification manuelle qui s'écarte du preset le fait passer à `CUSTOM`.
+
+**Validation :** la réponse est normalisée en booléen natif (`true` / `false`) ; toute autre valeur est rejetée. Une question facultative laissée sans réponse n'équivaut **pas** à `false`.
+
+**Statistiques :** effectif et pourcentage de chaque valeur (`trueCount` / `falseCount`, base : répondants à la question), avec une barre comparative affichant les deux libellés.
+
+### 4.7 `RANGE` — Échelle (curseur)
+
+**Objectif :** une note ou une intensité sur une échelle (« Recommanderiez-vous ce service ? » de 0 à 10), plus rapide qu'un `NUMBER` et plus parlant visuellement.
+
+**Rendu :** curseur (`Slider` de `core-react`, `<input type="range">` natif : clavier, lecteurs d'écran, tactile), valeur affichée en grand (« 8/10 »), libellés des extrémités sous la piste (« Pas du tout » / « Absolument »).
+
+| Paramètre | Type | Description |
+| :--- | :--- | :--- |
+| `min` / `max` / `step` | nombres | **Intervalle régulier** (défaut 0 à 10, pas de 1). `max - min` multiple du pas, 1000 crans au plus |
+| `values` | liste de nombres, optionnelle | **Valeurs personnalisées** (ex. 2, 4, 6, 22, 40, 79) : triées, sans doublon, au moins 2. Le curseur avance d'une valeur à la suivante ; `min` / `max` en sont déduits, le pas est ignoré |
+| `minLabel` / `maxLabel` | texte, 60 car. | Libellés des extrémités |
+| `unit` | texte, 12 car. | Suffixe affiché (« /10 » collé, « % » ou « € » après une espace) |
+| `defaultValue` | nombre ou `null` | Position de départ, **comptée comme réponse**. `null` : curseur au milieu, grisé, « Déplacez le curseur » ; le participant doit le déplacer (ou cliquer dessus) pour répondre |
+
+**Builder :** choix « Intervalle régulier » / « Valeurs personnalisées », aperçu manipulable du curseur, contrôles signalés en direct.
+
+**Validation :** la réponse doit être une valeur de l'échelle (bornes incluses et alignée sur le pas, ou présente dans la liste personnalisée).
+
+**Statistiques :** moyenne, médiane, minimum, maximum ; répartition cran par cran (échelle de 21 crans au plus), histogramme par tranches au-delà. Export : la valeur numérique.
 
 ---
 
@@ -246,10 +364,11 @@ Le lien personnel `https://app.{domaine}/s/{token}` est servi par l'application 
 | 1 | Jeton inexistant | Page d'erreur « Lien invalide » |
 | 2 | `CLOSED` ou `now >= expiresAt` | « Ce questionnaire est désormais clôturé. Les réponses ne sont plus acceptées. » |
 | 3 | `recipient.status === 'ANSWERED'` | « Vous avez déjà répondu à ce questionnaire le {date}. Une seule participation est autorisée. » (formulaire totalement masqué) |
-| 4 | Accès valide (`SENT` ou `OPENED`) | Formulaire affiché, questions ordonnées par `position`, avec leur encart d'aide contextuelle éventuel (voir §3.2). À la première ouverture : statut `OPENED` + `openedAt` horodaté. |
+| 4 | Accès valide (`SENT` ou `OPENED`) | Formulaire affiché, questions ordonnées par `position`, avec leur encart d'aide contextuelle éventuel (voir §3.2) ; les questions conditionnelles dont la condition est fausse sont masquées (§3.5). À la première ouverture : statut `OPENED` + `openedAt` horodaté. |
 
 ### 6.2 Soumission atomique et anti-doublon
-* L'ensemble des réponses est validé et enregistré en **une seule opération atomique**.
+* Les conditions d'affichage sont **réévaluées par le serveur** à partir des réponses reçues, avant tout contrôle : une question masquée n'est ni obligatoire ni validée, et sa valeur éventuelle est ignorée (§3.5).
+* L'ensemble des réponses est validé et enregistré en **une seule opération atomique**. Le brouillon éventuel (§6.5) n'est jamais une réponse : il est ignoré par la validation et effacé à l'envoi.
 * Le destinataire passe immédiatement à `ANSWERED` (`submittedAt` horodaté), ce qui rend toute seconde soumission impossible (rafraîchissement, onglet parallèle, rejeu HTTP).
 
 ### 6.3 Télémétrie (à la soumission, sur la fiche du destinataire)
@@ -264,23 +383,58 @@ Le lien personnel `https://app.{domaine}/s/{token}` est servi par l'application 
 | Appareil | `deviceType` : `desktop`, `mobile`, `tablet` |
 | Durée de complétion | `submittedAt - openedAt` |
 
-### 6.4 Parcours de saisie : barre de progression et stepper
+### 6.4 Parcours de saisie : affichage, barre de progression et stepper
 
-**Barre de progression (tous les formulaires).** Pour renforcer le sentiment d'avancement, une barre de progression est **toujours affichée** en haut du formulaire participant, avec un pourcentage lisible (ex. : « 40 % »).
+**Mode d'affichage (réglage du questionnaire, `displayMode`).** Choisi par le créateur dans le builder (« Affichage pour le participant »), modifiable tant que la campagne n'est pas lancée (`DRAFT` ou `VALIDATED`) : c'est de la présentation, hors structure verrouillée. Conservé par la duplication.
 
-| Formulaire | Calcul de la progression |
+| Mode | Rendu |
 | :--- | :--- |
-| Sans sections (page unique) | Questions renseignées / nombre total de questions, mise à jour en direct à chaque réponse |
-| Avec sections (stepper) | Étape courante / nombre d'étapes (ex. : étape 2 sur 4 = 50 %) ; atteint 100 % à la dernière étape renseignée |
+| `LIST` (défaut) | **Liste** : toutes les questions de l'écran en même temps. Sans stepper, un seul écran ; avec stepper, un écran par section. |
+| `ONE_BY_ONE` | **Question par question** : une question par écran, « Précédent » / « Suivant ». Avec stepper, celui-ci indique la section de la question affichée ; titre et description de section en tête de la première question de la section. |
+
+Le mode d'affichage et le stepper sont **indépendants** : le stepper ne dépend que du nombre de sections (≥ 2), jamais du mode.
+
+**Nombre de questions et durée estimée (options du questionnaire).** Sous le titre et la description du premier écran : « Durée estimée : 3 à 5 minutes · 12 questions ». Le **nombre de questions est toujours affiché** ; la **durée estimée est facultative** : option « Afficher la durée estimée » (`showDuration`, activée par défaut) dans le bloc « Options du questionnaire » du builder, modifiable tant que la campagne n'est pas lancée. Sans la durée, seul « 12 questions » est affiché. Estimation faite par `forms_bo` (temps moyen par type de question + lecture de l'intitulé et de l'aide) ; avec des questions conditionnelles, nombre de questions et durée sont des fourchettes (« 8 à 12 questions »). Au-delà de 10 minutes estimées, le builder suggère de masquer la durée pour ne pas décourager les participants.
+
+**Bandeau de progression.** Le stepper (s'il existe) puis la barre de progression forment un bandeau placé **tout en haut, juste sous la barre de navigation**, et qui reste collé en haut de l'écran pendant le défilement (mobile compris). Le titre et la description du questionnaire s'affichent sous ce bandeau, sur le premier écran.
+
+**Barre de progression (tous les formulaires, y compris en liste).** Pour renforcer le sentiment d'avancement, une barre de progression est **toujours affichée**, avec un libellé et un pourcentage lisibles (ex. : « 40 % »).
+
+| Formulaire | Calcul de la progression | Libellé |
+| :--- | :--- | :--- |
+| Liste sans sections (un seul écran) | Questions renseignées / nombre de questions **affichées**, mise à jour en direct à chaque réponse | « 3 questions renseignées sur 8 » |
+| Liste avec sections (stepper) | Étape courante / nombre d'étapes **affichées** (ex. : étape 2 sur 4 = 50 %) ; atteint 100 % à la dernière étape | « Étape 2 sur 4 » |
+| Question par question | Question courante / nombre de questions **affichées** ; 100 % à la dernière | « Question 3 sur 8 » |
 
 Accessibilité : `role="progressbar"` avec `aria-valuenow`, `aria-valuemin`, `aria-valuemax`.
 
-**Stepper (uniquement si le questionnaire compte au moins 2 sections, voir §3.4).**
-* Le formulaire devient un **tunnel** : une section par étape, avec un indicateur d'étapes (titres des sections, étape courante mise en évidence).
+**Saisie au clavier.** Entrée dans un champ passe à l'écran suivant ; elle n'envoie **jamais** le questionnaire (seul le bouton « Envoyer » le fait).
+
+**Questions conditionnelles (§3.5).**
+* Les conditions sont évaluées **en temps réel** à chaque changement de réponse : une question dépendante apparaît ou disparaît immédiatement, sans rechargement.
+* Quand une question redevient masquée, sa valeur saisie est **effacée** (fichiers déposés compris) ; elle n'est jamais envoyée.
+* L'apparition d'une question est annoncée aux technologies d'assistance (région `aria-live` polie) ; la numérotation affichée reste celle du builder.
+* En mode stepper, une étape dont **toutes** les questions sont masquées est sautée et n'est pas comptée dans le nombre d'étapes.
+
+**Stepper (uniquement si le questionnaire compte au moins 2 sections, voir §3.4).** Aucune autre règle ne fait apparaître de stepper.
+* Un item par section : son **numéro est la position de la section** (1, 2, 3, 4…) et son **libellé est le titre de la section** ; la section en cours est mise en évidence (`aria-current="step"`).
+* Sur mobile, le stepper tient sur une ligne qui défile horizontalement : numéros de toutes les sections, titre de la section en cours seulement (les autres titres restent lus par les lecteurs d'écran).
+* En liste, le formulaire devient un **tunnel** : une section par étape.
 * Boutons « Précédent » / « Suivant ». Le bouton « Suivant » valide d'abord les questions de l'étape (obligatoires, formats, contraintes) et bloque tant que des erreurs subsistent ; « Précédent » n'exige aucune validation.
 * Les réponses saisies sont **conservées lors de la navigation** entre étapes.
-* Le bouton « Envoyer » n'apparaît qu'à la **dernière étape**. La soumission reste **atomique** (§6.2) : rien n'est enregistré côté serveur avant l'envoi final, et l'unicité du jeton est inchangée.
+* Le bouton « Envoyer » n'apparaît qu'à la **dernière étape**. La soumission reste **atomique** (§6.2) : aucune réponse n'est enregistrée avant l'envoi final (seul un brouillon l'est, §6.5), et l'unicité du jeton est inchangée.
 * La description de la section est affichée en tête d'étape.
+
+### 6.5 Brouillon : reprendre plus tard
+
+Chaque participant a son propre lien : ses réponses en cours sont enregistrées au fil de la saisie, pour qu'il puisse quitter et revenir sans tout ressaisir (moins de friction, moins d'abandons).
+
+* **Enregistrement automatique** (`PUT /api/public/surveys/{token}/draft`), environ 1 s après la dernière modification et à chaque changement d'écran : réponses telles que saisies (questions visibles uniquement, **sans validation métier**), plus la première question de l'écran courant. Stockage JSON sur la fiche du destinataire (`draftAnswers`, `draftQuestionId`, `draftSavedAt`). Un discret « Réponses enregistrées à 14:32 » le confirme ; un échec n'empêche jamais de répondre.
+* **Au retour** (lien rouvert, brouillon non vide) : écran « Vous avez commencé ce questionnaire le … (N réponses déjà saisies) » avec deux choix :
+  * **Reprendre où j'en étais** : réponses restaurées, reprise sur l'écran où le participant s'était arrêté ;
+  * **Recommencer** (`DELETE …/draft`) : brouillon **et fichiers déjà déposés** effacés, retour au premier écran.
+* **Confidentialité** : le brouillon n'est jamais visible du créateur, ni compté dans les statistiques ou les exports. Il est effacé à l'envoi (passage à `ANSWERED`), quand le participant recommence, et à la **clôture** du questionnaire.
+* Une fois le questionnaire envoyé ou clôturé, le lien ne permet plus d'enregistrer de brouillon (403).
 
 ---
 
@@ -299,14 +453,19 @@ Un questionnaire `ACTIVE` passe à `CLOSED` dès que :
 * Temps moyen de remplissage.
 * Répartition technique des répondants (navigateurs, OS, mobile vs desktop).
 
-**Analyse question par question :** rendu adapté à chacun des 5 types ([§4](#4-les-5-types-de-questions)).
+**Analyse question par question :** rendu adapté à chacun des 7 types ([§4](#4-les-7-types-de-questions)).
+
+**Questions conditionnelles (§3.5)**
+* Le taux de réponse d'une question conditionnelle est calculé sur les **répondants éligibles** (ceux pour qui la condition était vraie, donc qui ont vu la question), et non sur l'ensemble des répondants.
+* Chaque question conditionnelle affiche « Affichée à X répondants » et rappelle sa condition (« si Q{n} … »).
+* Les pourcentages par valeur (options, booléen) gardent pour base les répondants à la question.
 
 **Recherche plein texte**
 * Recherche par mot-clé, triée par pertinence, sur : les questionnaires (titre, description), les questions (intitulé, aide), les destinataires (adresse e-mail) et les verbatims des questions `TEXT`.
 * Disponible dans le dashboard (via l'API) et, pour les contenus publics éventuels, sur le site vitrine. Détails techniques : [specs_tech §3.5](./specs_tech.prompt.md#35-recherche-plein-texte-index-fulltext--extension-dql).
 
 **Exports**
-* CSV/Excel des réponses brutes (une ligne par destinataire, avec télémétrie).
+* CSV/Excel des réponses brutes (une ligne par destinataire, avec télémétrie). Une question masquée pour un destinataire laisse sa cellule vide ; une réponse `BOOLEAN` est exportée avec son libellé (`trueLabel` / `falseLabel`).
 * Archive `.zip` consolidée pour les questions `FILE`.
 
 ---
@@ -377,7 +536,7 @@ Site marketing public, distinct de l'application métier, dédié à l'**acquisi
 | Route | Contenu |
 | :--- | :--- |
 | `/` | Accueil : proposition de valeur, présentation des 3 étapes, aperçu visuel, CTA vers l'application |
-| `/fonctionnalites` | Détail des 5 types de questions, du contrôle par lien unique, des relances automatiques et des statistiques consolidées |
+| `/fonctionnalites` | Détail des 7 types de questions et de l'affichage conditionnel, du contrôle par lien unique, des relances automatiques et des statistiques consolidées |
 | `/cas-usage` | Pages dédiées par cas d'usage : enquêtes internes, collecte de dossiers / pièces jointes, évaluations post-formation |
 | `/tarifs` | Grille des offres et FAQ |
 | `/contact` | Formulaire de contact |

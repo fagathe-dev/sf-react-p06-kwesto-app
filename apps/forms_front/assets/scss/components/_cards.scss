@@ -1,0 +1,222 @@
+@use '../abstracts' as *;
+
+.features-grid {
+  display: grid;
+  gap: var(--space-4);
+
+  @include up(md) {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
+.feature {
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+
+  p {
+    margin: 0;
+    color: var(--color-muted);
+  }
+}
+
+.steps {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  list-style: none;
+
+  @include up(md) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.step {
+  position: relative;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+
+  &__number {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-bottom: var(--space-4);
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-muted);
+  }
+}
+
+.check-list {
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  list-style: none;
+
+  li {
+    position: relative;
+    padding-left: var(--space-6);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0.35em;
+      left: 0;
+      width: 1.1em;
+      height: 1.1em;
+      border-radius: 50%;
+      background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E")
+          center / 75% no-repeat,
+        var(--color-primary);
+    }
+  }
+
+  li + li {
+    margin-top: var(--space-2);
+  }
+}
+
+.quote-card {
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-border);
+
+  blockquote {
+    margin: 0 0 var(--space-3);
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--color-heading);
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-muted);
+  }
+}
+
+.callout {
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  background: var(--color-dark);
+  color: #e2e8f0;
+
+  &__label {
+    margin-bottom: var(--space-2);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  &__code {
+    font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+    font-size: 1.1rem;
+    color: #fff;
+    overflow-wrap: anywhere;
+
+    span {
+      color: #a5b4fc;
+    }
+  }
+}
+
+.plans {
+  display: grid;
+  gap: var(--space-5);
+  align-items: stretch;
+
+  @include up(lg) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+
+  .check-list {
+    flex: 1;
+  }
+
+  &--featured {
+    border: 2px solid var(--color-primary);
+    box-shadow: var(--shadow-lg);
+  }
+
+  &__badge {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    margin: 0;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transform: translate(-50%, -50%);
+  }
+
+  &__price {
+    margin-bottom: var(--space-2);
+    color: var(--color-muted);
+
+    strong {
+      font-size: 2.2rem;
+      color: var(--color-heading);
+    }
+  }
+
+  &__desc {
+    color: var(--color-muted);
+  }
+}
+
+// Encart d'aide contextuelle (même style que le formulaire participant)
+.help-box {
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-help-bg);
+  color: var(--color-help-text);
+  font-size: 0.9rem;
+
+  strong {
+    display: block;
+  }
+}
+
+.alert {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+
+  strong {
+    display: block;
+  }
+
+  &--success {
+    background: var(--color-success-soft);
+    color: var(--color-success);
+  }
+
+  &--danger {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+  }
+}

@@ -1,15 +1,24 @@
-# see https://symfony.com/doc/current/reference/configuration/framework.html
 framework:
     secret: '%env(APP_SECRET)%'
 
-    # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    # API sans état : aucune session
+    session: false
 
-    #esi: true
-    #fragments: true
+    # Adresse IP réelle du participant derrière un reverse-proxy (télémétrie, specs_fonc §6.3)
+    trusted_proxies: '%env(default::TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix']
+
+    serializer:
+        default_context:
+            datetime_timezone: 'Europe/Paris'
+
+    rate_limiter:
+        # Formulaire participant : protège les dépôts de fichiers et les soumissions
+        participant:
+            policy: sliding_window
+            limit: 120
+            interval: '10 minutes'
 
 when@test:
     framework:
         test: true
-        session:
-            storage_factory_id: session.storage.factory.mock_file
