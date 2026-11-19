@@ -197,13 +197,14 @@ final class SurveyService
         $conditionErrors = $this->conditionStructureErrors($rawSections, $rawQuestions);
         if ([] !== $conditionErrors) {
             return $this->sendJson([
-                'message' => 'Certaines conditions d\'affichage sont invalides : une question ne peut dépendre que d\'une question placée avant elle.',
+                'message' => 'Certaines conditions d\'affichage sont invalides : une question ou une section ne peut dépendre que d\'une question placée avant elle.',
                 'errors' => $conditionErrors,
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $sectionsByClientId = $this->syncSections($survey, $rawSections);
-        $this->syncQuestions($survey, $rawQuestions, $sectionsByClientId);
+        $questionsByClientId = $this->syncQuestions($survey, $rawQuestions, $sectionsByClientId);
+        $this->syncSectionConditions($rawSections, $sectionsByClientId, $questionsByClientId);
 
         $this->surveyRepository->save($survey->touch($this->clock->now()));
 
@@ -279,12 +280,19 @@ final class SurveyService
             $copy->addQuestion($copies[$question->getId()->toRfc4122()]);
         }
 
-        // Conditions recopiées vers les nouvelles questions sources
+        // Conditions (questions et sections) recopiées vers les nouvelles questions sources
         foreach ($source->getOrderedQuestions() as $question) {
             $condition = $question->getCondition();
             $newSource = null !== $condition ? ($copies[$condition->sourceQuestionId] ?? null) : null;
             if (null !== $newSource) {
                 $copies[$question->getId()->toRfc4122()]->setCondition($condition->withSource($newSource->getId()->toRfc4122()));
+            }
+        }
+        foreach ($source->getOrderedSections() as $section) {
+            $condition = $section->getCondition();
+            $newSource = null !== $condition ? ($copies[$condition->sourceQuestionId] ?? null) : null;
+            if (null !== $newSource) {
+                $sections[$section->getId()->toRfc4122()]->setCondition($condition->withSource($newSource->getId()->toRfc4122()));
             }
         }
 
@@ -375,6 +383,10 @@ final class SurveyService
             if (0 === ($questionsPerSection[$sectionId] ?? 0)) {
                 $errors[] = self::error('section', $sectionId, $section->getPosition(), 'Chaque section doit contenir au moins une question.');
             }
+
+            foreach ($this->conditions->sectionDesignErrors($section, $questionsById) as $message) {
+                $errors[] = self::error('section', $sectionId, $section->getPosition(), $message);
+            }
         }
 
         return $errors;
@@ -427,8 +439,10 @@ final class SurveyService
     /**
      * @param list<array<string, mixed>>   $rawQuestions
      * @param array<string, SurveySection> $sectionsByClientId
+     *
+     * @return array<string, Question> questions indexées par l'identifiant reçu du builder
      */
-    private function syncQuestions(Survey $survey, array $rawQuestions, array $sectionsByClientId): void
+    private function syncQuestions(Survey $survey, array $rawQuestions, array $sectionsByClientId): array
     {
         $existing = [];
         foreach ($survey->getQuestions() as $question) {
@@ -487,6 +501,29 @@ final class SurveyService
             $source = null !== $condition ? ($byClientId[$condition->sourceQuestionId] ?? null) : null;
             $question->setCondition(null !== $source && $source !== $question ? $condition->withSource($source->getId()->toRfc4122()) : null);
         }
+
+        return $byClientId;
+    }
+
+    /**
+     * Conditions de section rattachées à l'identifiant réel de la source ; source supprimée → condition retirée.
+     *
+     * @param list<array<string, mixed>>   $rawSections
+     * @param array<string, SurveySection> $sectionsByClientId
+     * @param array<string, Question>      $questionsByClientId
+     */
+    private function syncSectionConditions(array $rawSections, array $sectionsByClientId, array $questionsByClientId): void
+    {
+        foreach ($rawSections as $raw) {
+            $section = $sectionsByClientId[\is_string($raw['id'] ?? null) ? $raw['id'] : ''] ?? null;
+            if (null === $section) {
+                continue;
+            }
+
+            $condition = DisplayCondition::fromArray($raw['displayCondition'] ?? null);
+            $source = null !== $condition ? ($questionsByClientId[$condition->sourceQuestionId] ?? null) : null;
+            $section->setCondition(null !== $source ? $condition->withSource($source->getId()->toRfc4122()) : null);
+        }
     }
 
     /**
@@ -515,11 +552,13 @@ final class SurveyService
         usort($ordered, static fn (array $a, array $b): int => [$a['section'], $a['index']] <=> [$b['section'], $b['index']]);
 
         $positions = [];
+        $sectionOf = [];
         $types = [];
         $configs = [];
-        foreach ($ordered as $position => ['raw' => $raw]) {
+        foreach ($ordered as $position => ['raw' => $raw, 'section' => $section]) {
             $id = (string) ($raw['id'] ?? '');
             $positions[$id] = $position + 1;
+            $sectionOf[$id] = $section + 1;
             $types[$id] = QuestionType::from((string) $raw['type']);
             // Configuration normalisée : le choix unique / multiple de la source en dépend
             $configs[$id] = $this->questionTypes->get($types[$id])->normalizeConfig(\is_array($raw['config'] ?? null) ? $raw['config'] : []);
@@ -535,6 +574,18 @@ final class SurveyService
             $source = $condition->sourceQuestionId;
             foreach ($this->conditions->structureErrors($condition, $types[$source], $configs[$source], $positions[$source], $position + 1) as $message) {
                 $errors[] = self::error('question', \is_string($raw['id'] ?? null) ? $raw['id'] : null, $position + 1, $message);
+            }
+        }
+
+        foreach ($rawSections as $index => $raw) {
+            $condition = DisplayCondition::fromArray($raw['displayCondition'] ?? null);
+            if (null === $condition || !isset($positions[$condition->sourceQuestionId])) {
+                continue;
+            }
+
+            $source = $condition->sourceQuestionId;
+            foreach ($this->conditions->sectionStructureErrors($condition, $types[$source], $configs[$source], $sectionOf[$source], $index + 1) as $message) {
+                $errors[] = self::error('section', \is_string($raw['id'] ?? null) ? $raw['id'] : null, $index + 1, $message);
             }
         }
 

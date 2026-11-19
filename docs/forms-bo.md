@@ -14,7 +14,7 @@ npm test            # Vitest + Testing Library
 | Route | Page | Accès |
 | :--- | :--- | :--- |
 | `/login`, `/logout` | Connexion, déconnexion | anonyme |
-| `/surveys` | Mes questionnaires (filtre par état, recherche, création) | créateur |
+| `/surveys` | Mes questionnaires (filtre par état, recherche, création, duplication) | créateur |
 | `/surveys/:id` | Builder (module 1) | créateur |
 | `/surveys/:id/recipients` | Diffusion et suivi des destinataires (module 2) | créateur |
 | `/surveys/:id/stats` | Statistiques, exports (module 4) | créateur |
@@ -40,6 +40,8 @@ Règles suivies : aucun `fetch` dans un composant, props de style transitoires `
 
 ## Builder (`pages/surveys/builder`)
 
+- « Dupliquer » (`pages/surveys/DuplicateSurveyButton.tsx`), sur chaque carte de « Mes questionnaires » et dans l'en-tête du builder, quel que soit l'état : `POST …/duplicate` crée un brouillon « … (copie) » avec les mêmes options, sections, questions et conditions, sans destinataires ni réponses, puis l'ouvre dans le builder. Depuis le builder, les modifications en attente sont enregistrées avant la copie. C'est le moyen de repartir d'un questionnaire verrouillé.
+
 - `builderModel.ts` : état pur (sections, questions dans l'ordre), numérotation continue, déplacements, conversion vers le contrat de l'API — testé unitairement.
 - `useBuilder.ts` : enregistrement automatique 800 ms après chaque modification, déplacements compris (`PUT /structure`), indicateur « Enregistré », enregistrement forcé avant de quitter.
 - Glisser-déposer `@dnd-kit` par la poignée, au clavier (flèches, Espace) avec annonces vocales : questions au sein d'une section et d'une section à l'autre ; plan des étapes pour réordonner les sections.
@@ -53,7 +55,9 @@ Règles suivies : aucun `fetch` dans un composant, props de style transitoires `
 - Bloc « Options du questionnaire » : affichage des questions (liste / question par question) et « Afficher la durée estimée » (`showDuration`), avec l'aperçu de ce que verra le participant ; suggestion de masquer la durée au-delà de 10 minutes. Le nombre de questions est toujours affiché.
 - Aide contextuelle : titre (80 caractères) et texte, aperçu en direct de l'encart. Choix multiple sans aide : « Plusieurs réponses possibles. » par défaut (placeholder et aperçu).
 - Type « Oui / Non » (BOOLEAN) : libellés (modèles ou personnalisés), deux boutons ou interrupteur, valeur par défaut, aperçu manipulable.
-- Affichage conditionnel : « Afficher cette question uniquement si… » (source : question précédente **Oui / Non ou à choix unique** seulement — radio ou liste —, opérateurs « est », « n'est pas », « est l'une de », valeur parmi les options ou Oui / Non ; une source qui change de type ou passe en choix multiple perd ses conditions dépendantes), badge « Si Q1 est « Madame » » sur la carte, même repliée ; suppression ou changement de type de la source → conditions dépendantes retirées ; déplacement au-dessus de la source → confirmation (retirer la condition ou annuler).
+- Type « Échelle » (RANGE, `builder/RangeEditor.tsx`) : « Intervalle régulier » (min, max, pas) ou « Valeurs personnalisées » (liste séparée par « ; », « , » ou des espaces, ex. 2 ; 4 ; 6 ; 22 ; 40 ; 79), suffixe (`/10`, `%`…), libellés des extrémités, valeur de départ facultative, aperçu manipulable (`ui/RangeSlider.tsx`, `Slider` de core-react).
+- Affichage conditionnel : « Afficher cette question uniquement si… » (source : question précédente **Oui / Non, à choix unique — radio ou liste —, Chiffres ou Échelle** seulement ; opérateurs « est », « n'est pas », « est l'une de » pour un choix, « est égal à », « est différent de », « est inférieur (ou égal) à », « est supérieur (ou égal) à » pour un nombre ; valeur parmi les options, Oui / Non, les crans de l'échelle ou un seuil saisi ; une source qui change de type ou passe en choix multiple perd ses conditions dépendantes), badge « Si Q1 est « Madame » » sur la carte, même repliée ; suppression ou changement de type de la source → conditions dépendantes retirées ; déplacement au-dessus de la source → confirmation (retirer la condition ou annuler).
+- Section conditionnelle : « Afficher cette section uniquement si… » sous le titre et la description de chaque section (à partir de la 2ᵉ). Sources : questions des sections précédentes. Badge dans l'en-tête de la section. Condition retirée si la source est supprimée, change de type ou n'est plus dans une section précédente (déplacement confirmé, suppression de section).
 - Question FILE : encart « Envoi de fichiers » ou « Limite dépassée » selon `uploadMaxSizeMb` lu depuis l'API.
 - « Valider le questionnaire » : confirmation, puis erreurs 422 affichées sur les questions et sections concernées ; succès → page de diffusion. Hors `DRAFT`, tout est en lecture seule.
 
@@ -68,9 +72,10 @@ Règles suivies : aucun `fetch` dans un composant, props de style transitoires `
 - Encart d'aide lu après l'intitulé et relié au champ par `aria-describedby`.
 - Sous la description : nombre de questions (toujours) et durée estimée (si `showDuration`).
 - Choix à 10 options et plus (`ChoiceAutocomplete.tsx`, `choiceSearch.ts`) : filtre au-dessus des boutons radio / cases à cocher (réponses cochées toujours visibles), saisie semi-automatique à la place de la liste déroulante.
-- Questions conditionnelles (`conditionEvaluator.ts`, miroir de `ConditionEvaluatorService`) : réévaluées à chaque réponse, apparition annoncée (`aria-live`), valeur effacée (fichiers retirés) quand la question redevient masquée, obligatoire seulement si visible, jamais envoyée masquée ; section entièrement masquée sautée ; numérotation du builder conservée.
+- Questions conditionnelles (`conditionEvaluator.ts`, miroir de `ConditionEvaluatorService`) : réévaluées à chaque réponse, apparition annoncée (`aria-live`), valeur effacée (fichiers retirés) quand la question redevient masquée, obligatoire seulement si visible, jamais envoyée masquée ; section conditionnelle ou entièrement masquée sautée (stepper renuméroté) ; numérotation du builder conservée.
 - Validation locale identique aux règles serveur (`participantModel.ts`, testée), le serveur restant seul juge.
 - Fichiers : glisser-déposer (`FileDropzone` de core-react), progression d'envoi, taille effective et formats affichés, retrait avant envoi, reprise après rechargement (`pendingAssets`).
+- Brouillon : réponses et position enregistrées 800 ms après la dernière modification (`PUT …/draft`), note « Réponses enregistrées à HH:MM… ». Au retour sur le lien, écran de reprise (date, nombre de réponses) : « Reprendre où j'en étais » ou « Recommencer » (`DELETE …/draft`, fichiers déposés retirés).
 
 ## Production
 

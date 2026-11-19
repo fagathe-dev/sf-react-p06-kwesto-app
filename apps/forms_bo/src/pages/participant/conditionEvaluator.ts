@@ -1,4 +1,4 @@
-import type { Answers, AnswerValue, ChoiceConfig, ConditionOperator, DisplayCondition, Question, QuestionType } from '@/types';
+import type { Answers, AnswerValue, ChoiceConfig, ConditionOperator, DisplayCondition, Question, QuestionType, Section } from '@/types';
 
 /**
  * Affichage conditionnel côté navigateur (specs_fonc §3.5), miroir de FormsCore\Service\ConditionEvaluatorService :
@@ -80,31 +80,33 @@ export const isSatisfied = (condition: DisplayCondition, sourceType: QuestionTyp
   }
 };
 
+type SectionLike = Pick<Section, 'id' | 'displayCondition'>;
+
 /**
- * Questions visibles, dans l'ordre des positions. Une question dont la source est masquée est masquée (cascade).
+ * Questions visibles, dans l'ordre des positions. Une question dont la source est masquée est masquée (cascade) ;
+ * toutes les questions d'une section dont la condition est fausse sont masquées.
  */
-export const visibleQuestionIds = (orderedQuestions: Question[], answers: Answers): Set<string> => {
+export const visibleQuestionIds = (orderedQuestions: Question[], answers: Answers, sections: SectionLike[] = []): Set<string> => {
   const byId = new Map(orderedQuestions.map((q) => [q.id, q]));
+  const sectionConditions = new Map(sections.map((s) => [s.id, s.displayCondition ?? null]));
   const visible = new Set<string>();
 
-  for (const question of orderedQuestions) {
-    const condition = question.displayCondition;
-    if (!condition) {
-      visible.add(question.id);
-      continue;
-    }
-
+  const holds = (condition: DisplayCondition): boolean => {
     const source = byId.get(condition.sourceQuestionId);
-    if (source && visible.has(source.id) && isSatisfied(condition, source.type, answers[source.id])) {
-      visible.add(question.id);
-    }
+    return Boolean(source && visible.has(source.id) && isSatisfied(condition, source.type, answers[source.id]));
+  };
+
+  for (const question of orderedQuestions) {
+    const sectionCondition = question.sectionId ? sectionConditions.get(question.sectionId) : null;
+    if (sectionCondition && !holds(sectionCondition)) continue;
+    if (!question.displayCondition || holds(question.displayCondition)) visible.add(question.id);
   }
 
   return visible;
 };
 
 /** Réponses des seules questions visibles : la valeur d'une question qui redevient masquée est effacée. */
-export const pruneHidden = (orderedQuestions: Question[], answers: Answers): Answers => {
-  const visible = visibleQuestionIds(orderedQuestions, answers);
+export const pruneHidden = (orderedQuestions: Question[], answers: Answers, sections: SectionLike[] = []): Answers => {
+  const visible = visibleQuestionIds(orderedQuestions, answers, sections);
   return Object.fromEntries(Object.entries(answers).filter(([id]) => visible.has(id)));
 };

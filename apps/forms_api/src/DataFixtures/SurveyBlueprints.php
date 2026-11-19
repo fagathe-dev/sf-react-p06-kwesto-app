@@ -8,10 +8,11 @@ namespace App\DataFixtures;
  * Modèles de questionnaires réalistes, couvrant les 7 types de questions, l'aide contextuelle
  * et le découpage en sections (stepper).
  *
- * Format : [titre, description, sections] ; section = [titre, description, questions] ;
+ * Format : [titre, description, sections] ; section = [titre, description, questions, condition?] ;
  * question = [type, intitulé, obligatoire, config, aide (titre, texte) | null, condition?] ;
  * condition = [intitulé de la question source, opérateur, valeur] — pour un CHOICE, la valeur est le
  * libellé de l'option (ou une liste de libellés pour IN), traduit en identifiant d'option.
+ * Une section conditionnelle dépend d'une question d'une section précédente (même format de condition).
  * Un modèle avec une seule section est rendu en page unique (aucune section créée).
  */
 final class SurveyBlueprints
@@ -39,7 +40,12 @@ final class SurveyBlueprints
                     ['Votre profil', 'Ces informations servent uniquement aux statistiques agrégées.', [
                         ['NUMBER', 'Ancienneté dans l\'entreprise', true, ['allowDecimal' => false, 'min' => 0, 'max' => 45, 'unit' => 'ans'], null],
                         ['DATE', 'Date de votre dernier entretien annuel', false, ['minDate' => '2020-01-01', 'maxDate' => '2026-12-31'], null],
+                        ['BOOLEAN', 'Souhaitez-vous être recontacté(e) au sujet de vos réponses ?', true, ['preset' => 'YES_NO', 'widget' => 'buttons'], null],
                     ]],
+                    ['Vos coordonnées', 'Uniquement pour vous recontacter : elles ne sont pas reliées aux statistiques.', [
+                        ['TEXT', 'Nom', true, ['multiline' => false, 'maxLength' => 60, 'placeholder' => 'Votre nom de famille'], null],
+                        ['TEXT', 'Adresse e-mail professionnelle', true, ['multiline' => false, 'maxLength' => 255], null],
+                    ], ['Souhaitez-vous être recontacté(e) au sujet de vos réponses ?', 'EQUALS', true]],
                 ],
             ],
             'formation' => [

@@ -6,6 +6,7 @@ namespace FormsCore\Entity;
 
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use FormsCore\DTO\DisplayCondition;
 use FormsCore\Repository\SurveySectionRepository;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -42,6 +43,16 @@ class SurveySection
     #[ORM\Column]
     #[Groups(['survey.read', 'survey.public'])]
     private int $position = 1;
+
+    /**
+     * Affichage conditionnel de toute la section (specs_fonc §3.5) : contrat DisplayCondition, la source étant
+     * une question d'une section précédente ; null = toujours affichée.
+     *
+     * @var array<string, mixed>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Groups(['survey.read', 'survey.public'])]
+    private ?array $displayCondition = null;
 
     /**
      * @param Uuid|null $id identifiant généré par le builder (stable entre deux sauvegardes), sinon UUID v7
@@ -101,6 +112,26 @@ class SurveySection
     public function setPosition(int $position): static
     {
         $this->position = $position;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getDisplayCondition(): ?array
+    {
+        return $this->displayCondition;
+    }
+
+    public function getCondition(): ?DisplayCondition
+    {
+        return DisplayCondition::fromArray($this->displayCondition);
+    }
+
+    public function setCondition(?DisplayCondition $condition): static
+    {
+        $this->displayCondition = $condition?->toArray();
 
         return $this;
     }

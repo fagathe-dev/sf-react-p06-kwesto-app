@@ -183,6 +183,42 @@ final class SurveyLifecycleTest extends ApiTestCase
         self::assertStringContainsString('au moins 2 options', $result['errors'][0]['message']);
     }
 
+    public function testConditionalSectionIsSavedAndDuplicated(): void
+    {
+        $this->loginAs($this->createUser());
+        $survey = $this->api('POST', '/api/admin/surveys', ['title' => 'Avec coordonnées'])['survey'];
+        $s1 = '0193a1b2-0000-7000-8000-000000000001';
+        $s2 = '0193a1b2-0000-7000-8000-000000000002';
+        $callback = '0193a1b2-0000-7000-8000-000000000003';
+        $when = ['sourceQuestionId' => $callback, 'operator' => 'EQUALS', 'value' => true];
+
+        // Source dans la section elle-même : refusé
+        $this->api('PUT', "/api/admin/surveys/{$survey['id']}/structure", [
+            'sections' => [['id' => $s1, 'title' => 'Avis', 'displayCondition' => $when]],
+            'questions' => [['id' => $callback, 'sectionId' => $s1, 'type' => 'BOOLEAN', 'label' => 'Recontacter ?', 'config' => ['preset' => 'YES_NO']]],
+        ]);
+        self::assertResponseStatusCodeSame(422);
+
+        $saved = $this->api('PUT', "/api/admin/surveys/{$survey['id']}/structure", [
+            'sections' => [['id' => $s1, 'title' => 'Avis'], ['id' => $s2, 'title' => 'Coordonnées', 'displayCondition' => $when]],
+            'questions' => [
+                ['id' => $callback, 'sectionId' => $s1, 'type' => 'BOOLEAN', 'label' => 'Recontacter ?', 'config' => ['preset' => 'YES_NO']],
+                ['sectionId' => $s2, 'type' => 'TEXT', 'label' => 'Nom', 'config' => ['multiline' => false]],
+            ],
+        ])['survey'];
+        self::assertResponseIsSuccessful();
+        self::assertSame($when, $saved['sections'][1]['displayCondition']);
+
+        // Copie : nouveau brouillon, condition rattachée à la copie de la question source
+        $copy = $this->api('POST', "/api/admin/surveys/{$survey['id']}/duplicate")['survey'];
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('DRAFT', $copy['status']);
+        self::assertNotSame($survey['id'], $copy['id']);
+        $copiedSource = $copy['questions'][0]['id'];
+        self::assertNotSame($callback, $copiedSource);
+        self::assertSame($copiedSource, $copy['sections'][1]['displayCondition']['sourceQuestionId']);
+    }
+
     public function testTitleLengthIsEnforced(): void
     {
         $this->loginAs($this->createUser());

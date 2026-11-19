@@ -1,6 +1,6 @@
 import { canBeConditionSource, operatorsFor } from '@/pages/participant/conditionEvaluator';
 import { formatRangeValue, type BooleanConfig, type ChoiceConfig, type ConditionOperator, type DisplayCondition, type NumberConfig, type QuestionType, type RangeConfig } from '@/types';
-import type { BuilderQuestion, BuilderState } from './builderModel';
+import type { BuilderQuestion, BuilderSection, BuilderState } from './builderModel';
 import { orderedQuestions } from './builderModel';
 
 /**
@@ -128,6 +128,38 @@ export const describeCondition = (condition: DisplayCondition, source: BuilderQu
   return `Si Q${sourceNumber ?? '?'} ${operatorLabel(condition.operator, source.type)} « ${valueLabel(condition, source)} »`;
 };
 
+/** Rang de la section d'une question (sans section rattachée : la première). */
+const sectionIndexOf = (state: BuilderState, question: BuilderQuestion): number => Math.max(0, state.sections.findIndex((s) => s.id === question.sectionId));
+
+/**
+ * Sources possibles pour la condition d'une section : questions des sections précédentes, Oui / Non,
+ * à choix unique, Chiffres ou Échelle.
+ */
+export const eligibleSectionSources = (state: BuilderState, sectionId: string): BuilderQuestion[] => {
+  const index = state.sections.findIndex((s) => s.id === sectionId);
+  return index <= 0 ? [] : orderedQuestions(state).filter((q) => sectionIndexOf(state, q) < index && canBeConditionSource(q));
+};
+
+/** Problème de la condition d'une section, null si elle est correcte (ou absente). */
+export const sectionConditionIssue = (state: BuilderState, section: BuilderSection): string | null => {
+  const condition = section.displayCondition;
+  if (!condition) return null;
+
+  const source = state.questions.find((q) => q.id === condition.sourceQuestionId);
+  if (!source) return 'La question dont dépend cette section n\'existe plus.';
+  if (sectionIndexOf(state, source) >= state.sections.findIndex((s) => s.id === section.id)) return 'La question source doit appartenir à une section précédente.';
+  if (!canBeConditionSource(source)) return SOURCE_RULE;
+  if (!hasValidShape(condition, source)) return 'Complétez la valeur de la condition.';
+
+  if (source.type === 'CHOICE') {
+    const ids = (source.config as ChoiceConfig).options.map((o) => o.id);
+    const values = Array.isArray(condition.value) ? condition.value : [String(condition.value)];
+    if (values.some((v) => !ids.includes(v))) return 'La condition vise une option qui n\'existe plus.';
+  }
+
+  return null;
+};
+
 /** Questions dont la source n'est plus placée avant elles (ex. après un glisser-déposer). */
 export const orderViolations = (state: BuilderState): BuilderQuestion[] => {
   const ordered = orderedQuestions(state);
@@ -138,16 +170,29 @@ export const orderViolations = (state: BuilderState): BuilderQuestion[] => {
   });
 };
 
-/** Retire les conditions qui ne respectent plus l'ordre. */
+/** Sections dont la question source n'appartient plus à une section précédente. */
+export const sectionOrderViolations = (state: BuilderState): BuilderSection[] =>
+  state.sections.filter((section, index) => {
+    const source = section.displayCondition ? state.questions.find((q) => q.id === section.displayCondition!.sourceQuestionId) : undefined;
+    return source !== undefined && sectionIndexOf(state, source) >= index;
+  });
+
+/** Retire les conditions (questions et sections) qui ne respectent plus l'ordre. */
 export const withoutOrderViolations = (state: BuilderState): BuilderState => {
-  const broken = new Set(orderViolations(state).map((q) => q.id));
-  return broken.size === 0 ? state : { ...state, questions: state.questions.map((q) => (broken.has(q.id) ? { ...q, displayCondition: null } : q)) };
+  const broken = new Set([...orderViolations(state), ...sectionOrderViolations(state)].map((item) => item.id));
+  if (broken.size === 0) return state;
+  return {
+    sections: state.sections.map((s) => (broken.has(s.id) ? { ...s, displayCondition: null } : s)),
+    questions: state.questions.map((q) => (broken.has(q.id) ? { ...q, displayCondition: null } : q)),
+  };
 };
 
-/** Retire les conditions qui dépendent d'une question (supprimée, ou dont le type a changé). */
+/** Retire les conditions (questions et sections) qui dépendent d'une question (supprimée, ou dont le type a changé). */
 export const withoutConditionsOn = (state: BuilderState, sourceId: string): BuilderState => ({
-  ...state,
+  sections: state.sections.map((s) => (s.displayCondition?.sourceQuestionId === sourceId ? { ...s, displayCondition: null } : s)),
   questions: state.questions.map((q) => (q.displayCondition?.sourceQuestionId === sourceId ? { ...q, displayCondition: null } : q)),
 });
 
 export const dependentsOf = (state: BuilderState, sourceId: string): BuilderQuestion[] => state.questions.filter((q) => q.displayCondition?.sourceQuestionId === sourceId);
+
+export const sectionDependentsOf = (state: BuilderState, sourceId: string): BuilderSection[] => state.sections.filter((s) => s.displayCondition?.sourceQuestionId === sourceId);

@@ -8,8 +8,10 @@ Toutes les routes sont préfixées par `/api`, en JSON. Les contrôleurs sont mi
 POST /api/auth/login
 Content-Type: application/json
 
-{ "email": "camille@kwesto.test", "password": "Kwesto!2026" }
+{ "email": "camille@kwesto.test", "password": "S3dlc3RvITIwMjY=" }
 ```
+
+**Mots de passe encodés en base64.** Tout mot de passe envoyé par un client est encodé en base64 (octets UTF-8 ; `encodePassword()` dans `forms_bo/src/utils/secret.ts`). Ici, `S3dlc3RvITIwMjY=` = `Kwesto!2026`. L'API le décode avant la vérification (`App\EventListener\Base64PasswordListener`, sur le firewall `login`). Une valeur qui n'est pas du base64 valide est refusée comme un mot de passe erroné (401). Toute nouvelle route qui reçoit un mot de passe suit la même règle. Le base64 n'est pas un chiffrement : la confidentialité repose sur HTTPS.
 
 Réponse : `{ "token": "<JWT>", "user": { id, email, displayName, roles, createdAt } }`. Les requêtes suivantes portent `Authorization: Bearer <JWT>` (validité `JWT_TOKEN_TTL`, 8 h par défaut). 5 tentatives échouées par 15 minutes au maximum (`login_throttling`). La déconnexion consiste à oublier le jeton côté client.
 
@@ -69,12 +71,14 @@ Structure : l'ordre des tableaux fait foi. Chaque élément peut porter un `id` 
 
 | Méthode | Route | Notes |
 | :--- | :--- | :--- |
-| GET | `/api/public/surveys/{token}` | `OPEN` : `{ state, survey, pendingAssets, config }` ; sinon `{ state, message }` avec 404 (`INVALID`), 410 (`CLOSED`) ou 409 (`ANSWERED`) |
+| GET | `/api/public/surveys/{token}` | `OPEN` : `{ state, survey, pendingAssets, draft, config }` (`draft` : `{ answers, questionId, savedAt }` ou `null`) ; sinon `{ state, message }` avec 404 (`INVALID`), 410 (`CLOSED`) ou 409 (`ANSWERED`) |
 | POST | `/api/public/surveys/{token}/questions/{questionId}/files` | multipart `file` ; MIME réel, poids effectif, quota |
 | DELETE | `/api/public/surveys/{token}/files/{assetId}` | retrait d'un fichier non encore envoyé |
+| PUT | `/api/public/surveys/{token}/draft` | `{ answers, questionId? }` ; enregistre le brouillon (sans validation métier), `{ savedAt }` ; corps vide → brouillon effacé |
+| DELETE | `/api/public/surveys/{token}/draft` | « Recommencer » : brouillon et fichiers en attente supprimés ; 204 |
 | POST | `/api/public/surveys/{token}/submit` | `{ answers: { "<questionId>": valeur } }` ; 201, ou 400 `{ violations: { questionId: message } }` |
 
-`{token}` : 64 caractères hexadécimaux. Les routes de soumission et de dépôt sont limitées à 120 requêtes / 10 min par jeton et par IP. Les réponses portent `Cache-Control: no-store` et `Referrer-Policy: no-referrer`.
+`{token}` : 64 caractères hexadécimaux. Les routes de brouillon renvoient 403 si le lien ne permet plus de répondre et ne sont pas limitées. Les routes de soumission et de dépôt sont limitées à 120 requêtes / 10 min par jeton et par IP. Les réponses portent `Cache-Control: no-store` et `Referrer-Policy: no-referrer`.
 
 ## Module 4 — statistiques et exports
 

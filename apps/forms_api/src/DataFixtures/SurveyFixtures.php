@@ -540,11 +540,16 @@ final class SurveyFixtures extends Fixture implements DependentFixtureInterface
         $useSections = \count($sections) >= 2;
         $position = 0;
 
-        foreach ($sections as $sectionIndex => [$sectionTitle, $sectionDescription, $questions]) {
+        foreach ($sections as $sectionIndex => $blueprintSection) {
+            [$sectionTitle, $sectionDescription, $questions] = $blueprintSection;
             $section = null;
             if ($useSections) {
                 $section = (new SurveySection())->setTitle($sectionTitle)->setDescription($sectionDescription)->setPosition($sectionIndex + 1);
                 $survey->addSection($section);
+                // Section conditionnelle : la source appartient à une section précédente, déjà créée
+                if (isset($blueprintSection[3])) {
+                    $section->setCondition($this->condition($survey, $blueprintSection[3]));
+                }
             }
 
             foreach ($questions as $blueprintQuestion) {

@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20261116183845 extends AbstractMigration
+final class Version20261117014607 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -20,12 +20,14 @@ final class Version20261116183845 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE survey_recipient ADD draft_answers JSON DEFAULT NULL, ADD draft_question_id VARCHAR(36) DEFAULT NULL, ADD draft_saved_at DATETIME DEFAULT NULL');
+        $this->addSql('ALTER TABLE survey CHANGE display_mode display_mode VARCHAR(16) DEFAULT NULL, CHANGE show_duration show_duration TINYINT DEFAULT NULL');
+        $this->addSql('ALTER TABLE survey_section ADD display_condition JSON DEFAULT NULL');
     }
 
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE survey_recipient DROP draft_answers, DROP draft_question_id, DROP draft_saved_at');
+        $this->addSql('ALTER TABLE survey CHANGE display_mode display_mode VARCHAR(16) DEFAULT \'LIST\' NOT NULL, CHANGE show_duration show_duration TINYINT DEFAULT 1 NOT NULL');
+        $this->addSql('ALTER TABLE survey_section DROP display_condition');
     }
 }

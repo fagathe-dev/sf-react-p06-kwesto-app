@@ -27,6 +27,8 @@ Mot de passe commun : `Kwesto!2026` (constante `AppFixtures::PASSWORD`, dévelop
 | Évaluation de formation | `VALIDATED`, 24 destinataires | liste de diffusion, lancement |
 | Baromètre de satisfaction | `ACTIVE`, 60 destinataires, 3 sections | stepper, statistiques temps réel |
 | *(conditions)* | Dossier : « Nom de naissance » si Civilité = Madame · Séminaire : ateliers / repas si présent ≠ Non, date et « accompagné(e) ? » (interrupteur, Non par défaut) si Oui, nombre d'accompagnants si accompagné · Télétravail : « Que vous manque-t-il ? » si équipement En partie ou Non | réponses générées en respectant les conditions |
+| *(section conditionnelle)* | Baromètre : section « Vos coordonnées » affichée seulement si « Souhaitez-vous être recontacté(e)… ? » = Oui | lien `aaaa…` : étape sautée sur Non |
+| *(échelles)* | Baromètre : recommandation 0–10 « /10 » (eNPS) · Formation : note du formateur 0–20 au pas de 0,5, départ à 10 | curseur, statistiques par cran |
 | *(mode d'affichage)* | « Dossier de candidature » et « Événement » en `ONE_BY_ONE`, les autres en `LIST` | lien `bbbb…bbbb` : question par question |
 | Enquête télétravail | `ACTIVE`, ~12 % de réponses, échéance dans 4,5 jours | relance J-5/J-4 (`low-response-reminders`) |
 | Inscription au séminaire | `ACTIVE`, échéance dépassée | clôture `DEADLINE_REACHED` (`close-expired`) |

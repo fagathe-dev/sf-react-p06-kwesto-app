@@ -6,6 +6,7 @@ namespace App\Tests\Unit;
 
 use FormsCore\DTO\DisplayCondition;
 use FormsCore\Entity\Question;
+use FormsCore\Entity\SurveySection;
 use FormsCore\Entity\Survey;
 use FormsCore\Entity\SurveyRecipient;
 use FormsCore\Entity\User;
@@ -180,6 +181,38 @@ final class QuestionTypeHandlersTest extends TestCase
         // Source sans réponse : condition fausse, même avec NOT_EQUALS
         $maidenName->setCondition(new DisplayCondition($changed, ConditionOperator::NotEquals, false));
         self::assertSame($ids($civility, $changedName), $evaluator->visibleQuestionIds($all, [$civ => ['optionIds' => ['mme']]]));
+    }
+
+    public function testConditionalSectionHidesAllItsQuestions(): void
+    {
+        $evaluator = new ConditionEvaluatorService();
+        $first = (new SurveySection())->setTitle('Votre avis')->setPosition(1);
+        $contact = (new SurveySection())->setTitle('Vos coordonnées')->setPosition(2);
+
+        // « Souhaitez-vous être recontacté(e) ? » → section « Vos coordonnées » si Oui
+        $callback = $this->question(['preset' => 'YES_NO'])->setType(QuestionType::Boolean)->setPosition(1)->setSection($first);
+        $source = $callback->getId()->toRfc4122();
+        $contact->setCondition(new DisplayCondition($source, ConditionOperator::Equals, true));
+        $name = $this->question(['multiline' => false])->setType(QuestionType::Text)->setPosition(2)->setSection($contact);
+        $email = $this->question(['multiline' => false])->setType(QuestionType::Text)->setPosition(3)->setSection($contact);
+
+        $all = [$callback, $name, $email];
+        $ids = static fn (Question ...$q): array => array_map(static fn (Question $x): string => $x->getId()->toRfc4122(), $q);
+
+        self::assertSame($ids($callback, $name, $email), $evaluator->visibleQuestionIds($all, [$source => ['value' => true]]));
+        self::assertSame($ids($callback), $evaluator->visibleQuestionIds($all, [$source => ['value' => false]]));
+        self::assertSame($ids($callback), $evaluator->visibleQuestionIds($all, []));
+
+        // Condition de question dans une section conditionnelle : les deux doivent être vraies
+        $email->setCondition(new DisplayCondition($name->getId()->toRfc4122(), ConditionOperator::Equals, 'x'));
+        self::assertSame($ids($callback, $name), $evaluator->visibleQuestionIds($all, [$source => ['value' => true]]));
+
+        // Conception : la source doit appartenir à une section précédente
+        $byId = [$source => $callback];
+        self::assertSame([], $evaluator->sectionDesignErrors($contact, $byId));
+        self::assertSame([ConditionEvaluatorService::SECTION_ORDER_RULE], $evaluator->sectionStructureErrors(new DisplayCondition($source, ConditionOperator::Equals, true), QuestionType::Boolean, [], 2, 2));
+        self::assertSame([ConditionEvaluatorService::SOURCE_RULE], $evaluator->sectionStructureErrors(new DisplayCondition($source, ConditionOperator::Equals, 'a'), QuestionType::Text, [], 1, 2));
+        self::assertStringContainsString('n\'existe plus', $evaluator->sectionDesignErrors($contact, [])[0]);
     }
 
     public function testConditionStructureAndDesignErrors(): void

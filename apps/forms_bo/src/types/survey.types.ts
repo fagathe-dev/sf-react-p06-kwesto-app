@@ -126,6 +126,8 @@ export interface Section {
   title: string;
   description: string | null;
   position: number;
+  /** Absent ou null : section toujours affichée. Source : question d'une section précédente. */
+  displayCondition?: DisplayCondition | null;
 }
 
 export interface RecipientCounters {

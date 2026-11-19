@@ -9,6 +9,8 @@ export interface BuilderSection {
   id: string;
   title: string;
   description: string;
+  /** Affichage conditionnel de toute la section ; source : question d'une section précédente. */
+  displayCondition: DisplayCondition | null;
 }
 
 export interface BuilderQuestion {
@@ -70,7 +72,7 @@ export const fromSurvey = (survey: Survey): BuilderState => {
   const questions = [...survey.questions].sort((a, b) => a.position - b.position);
 
   return {
-    sections: sections.map((s: Section) => ({ id: s.id, title: s.title, description: s.description ?? '' })),
+    sections: sections.map((s: Section) => ({ id: s.id, title: s.title, description: s.description ?? '', displayCondition: s.displayCondition ?? null })),
     questions: questions.map((q: Question) => ({
       id: q.id,
       sectionId: q.sectionId,
@@ -89,8 +91,7 @@ export const fromSurvey = (survey: Survey): BuilderState => {
  * Condition envoyée à l'API : seulement si elle est complète (valeur saisie, forme conforme au type de la source).
  * Une condition en cours de saisie reste dans le builder sans bloquer l'enregistrement du reste.
  */
-const conditionToSend = (state: BuilderState, question: BuilderQuestion): DisplayCondition | null => {
-  const condition = question.displayCondition;
+const conditionToSend = (state: BuilderState, { displayCondition: condition }: { displayCondition: DisplayCondition | null }): DisplayCondition | null => {
   const source = condition ? state.questions.find((q) => q.id === condition.sourceQuestionId) : undefined;
   return condition && source && hasValidShape(condition, source) ? condition : null;
 };
@@ -112,7 +113,7 @@ export const numbering = (state: BuilderState): Map<string, number> =>
   new Map(orderedQuestions(state).map((question, index) => [question.id, index + 1]));
 
 export const toPayload = (state: BuilderState): StructurePayload => ({
-  sections: state.sections.map((s) => ({ id: s.id, title: s.title, description: s.description || null })),
+  sections: state.sections.map((s) => ({ id: s.id, title: s.title, description: s.description || null, displayCondition: conditionToSend(state, s) })),
   questions: orderedQuestions(state).map((q) => ({
     id: q.id,
     sectionId: state.sections.length === 0 ? null : (q.sectionId ?? state.sections[0]?.id ?? null),
@@ -137,7 +138,7 @@ export const toPublicSurvey = (meta: Pick<PublicSurvey, 'id' | 'title' | 'descri
     ...meta,
     questionsCount: questions.length,
     stepper: state.sections.length >= 2,
-    sections: state.sections.map((s, index) => ({ id: s.id, title: s.title, description: s.description || null, position: index + 1 })),
+    sections: state.sections.map((s, index) => ({ id: s.id, title: s.title, description: s.description || null, position: index + 1, displayCondition: conditionToSend(state, s) })),
     questions: questions.map((q, index) => ({
       id: q.id,
       sectionId: state.sections.length === 0 ? null : (q.sectionId ?? state.sections[0]?.id ?? null),
@@ -155,7 +156,7 @@ export const toPublicSurvey = (meta: Pick<PublicSurvey, 'id' | 'title' | 'descri
 
 /** Ajoute une section. La première section reçoit toutes les questions existantes. */
 export const addSection = (state: BuilderState): BuilderState => {
-  const section: BuilderSection = { id: uuid(), title: `Section ${state.sections.length + 1}`, description: '' };
+  const section: BuilderSection = { id: uuid(), title: `Section ${state.sections.length + 1}`, description: '', displayCondition: null };
 
   if (state.sections.length === 0) {
     return { sections: [section], questions: state.questions.map((q) => ({ ...q, sectionId: section.id })) };

@@ -502,9 +502,11 @@ Exemples :
 
 **Sources autorisées** : `BOOLEAN`, `CHOICE` dont le widget est `radio` ou `select`, `NUMBER` et `RANGE`. `ConditionOperator::allowedFor($type, $multipleChoice)` renvoie une liste vide pour toute autre source (`TEXT`, `DATE`, `FILE`, `CHOICE` `checkbox`) ; `ConditionEvaluatorService::canBeSource()` et, côté navigateur, `canBeConditionSource()` / `operatorsFor()` (`conditionEvaluator.ts`) appliquent la même règle. Côté PHP : `FormsCore\DTO\DisplayCondition` (readonly) et l'enum `FormsCore\Enum\ConditionOperator`.
 
+**Section conditionnelle** (fonc §3.5) : même contrat dans `SurveySection.displayCondition` (colonne JSON nullable `survey_section.display_condition`, groupes `survey.read` et `survey.public`), envoyé dans `sections[].displayCondition` de `PUT …/structure`. La source doit appartenir à une section de position strictement inférieure (`ConditionEvaluatorService::SECTION_ORDER_RULE`). Une source absente de la structure fait retirer la condition (`SurveyService::syncSectionConditions`). La condition est recopiée par `duplicate()`.
+
 ### 9.4 `ConditionEvaluatorService` (forms-core)
 
-Service transverse et sans état, unique source de vérité de l'évaluation côté serveur.
+Service transverse et sans état, unique source de vérité de l'évaluation côté serveur. `isVisible()` évalue d'abord la condition de la section de la question, puis celle de la question : il faut que les deux soient vraies. `sectionStructureErrors()` (422 à l'enregistrement) et `sectionDesignErrors()` (validation, `scope: section`) appliquent les règles des sections. Côté navigateur, `visibleQuestionIds(questions, answers, sections)` et `pruneHidden(…, sections)` font de même.
 
 | Méthode | Rôle |
 | :--- | :--- |

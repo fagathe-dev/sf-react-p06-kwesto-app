@@ -14,6 +14,7 @@ const api = vi.hoisted(() => ({
   saveStructure: vi.fn(),
   updateSurvey: vi.fn(),
   validateSurvey: vi.fn(),
+  duplicateSurvey: vi.fn(),
   fetchPlatformConfig: vi.fn(),
 }));
 
@@ -68,6 +69,24 @@ const renderBuilder = () =>
       </MemoryRouter>
     )
   );
+
+describe('Duplication du questionnaire', () => {
+  it('crée un brouillon à partir du questionnaire et ouvre la copie dans le builder', async () => {
+    const user = userEvent.setup();
+    const original = survey([textQuestion('q1', 'Votre avis', 1)]);
+    const copy = { ...original, survey: { ...original.survey, id: 'survey-2', title: 'Baromètre (copie)' } };
+    api.fetchSurvey.mockImplementation((id: string) => Promise.resolve(id === 'survey-2' ? copy : original));
+    api.fetchPlatformConfig.mockResolvedValue({ uploadMaxSizeMb: 10 });
+    api.duplicateSurvey.mockResolvedValue(copy);
+    renderBuilder();
+
+    await user.click(await screen.findByRole('button', { name: 'Dupliquer « Baromètre »' }));
+
+    await waitFor(() => expect(api.duplicateSurvey).toHaveBeenCalledWith('survey-1'));
+    await waitFor(() => expect(api.fetchSurvey).toHaveBeenCalledWith('survey-2'));
+    expect(await screen.findByRole('button', { name: 'Dupliquer « Baromètre (copie) »' })).toBeInTheDocument();
+  });
+});
 
 describe('AddQuestionButton', () => {
   it('se déploie en choix de type, se referme avec Échap et rend le focus au bouton', async () => {

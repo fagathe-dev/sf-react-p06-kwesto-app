@@ -173,6 +173,13 @@ Une question `TEXT`, `DATE`, `FILE` ou `CHOICE` à choix multiple (`checkbox`) n
 
 **Builder** : action « Afficher cette question uniquement si… » sur chaque question (sauf la première) : choix de la question source parmi les questions précédentes, de l'opérateur proposé selon son type, puis de la valeur (liste des options pour un `CHOICE`, libellés vrai/faux pour un `BOOLEAN`). Les cartes conditionnelles portent un badge « Conditionnelle — si Q{n} … ».
 
+**Section conditionnelle.** Une section entière peut dépendre d'une question, avec les mêmes sources, opérateurs et valeurs. Exemple : Q12 « Souhaitez-vous être recontacté(e) ? » → section « Vos coordonnées » (nom, prénom, e-mail, téléphone) si Oui.
+* La source appartient à une **section précédente** : la première section est toujours affichée, et une section ne peut pas dépendre de ses propres questions. Une source déplacée dans la section ou après elle fait retirer la condition (confirmation lors d'un glisser-déposer, comme pour une question).
+* Condition fausse : la section est **sautée**. Elle disparaît du stepper (les étapes sont renumérotées) et toutes ses questions sont masquées, avec les mêmes effets que pour une question masquée (invariant 4) : non obligatoires, réponses ignorées.
+* Une question d'une section conditionnelle peut avoir sa propre condition : elle n'est affichée que si les deux sont vraies.
+* Supprimer la source, ou changer son type, retire la condition de la section. Supprimer une section dont les questions servaient de source fait de même si ces questions passent dans la section conditionnelle.
+* Builder : « Afficher cette section uniquement si… » sous le titre et la description de la section (à partir de la 2ᵉ), badge « Si Q{n} … » dans l'en-tête de la section.
+
 Le rendu côté participant est décrit au §6.4, les statistiques au §7.2.
 
 ---

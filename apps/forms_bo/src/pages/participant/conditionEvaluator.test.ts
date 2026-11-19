@@ -43,6 +43,21 @@ describe('conditionEvaluator', () => {
     expect(pruneHidden(all, { civility: 'mr', changed: 'true', maiden: 'Durand' })).toEqual({ civility: 'mr' });
   });
 
+  it('section conditionnelle : toutes ses questions suivent la condition de la section', () => {
+    const callback = { ...q('callback', 'BOOLEAN', 1), sectionId: 's1' };
+    const name = { ...q('name', 'TEXT', 2), sectionId: 's2' };
+    const email = { ...q('email', 'TEXT', 3), sectionId: 's2' };
+    const sections = [
+      { id: 's1', displayCondition: null },
+      { id: 's2', displayCondition: { sourceQuestionId: 'callback', operator: 'EQUALS' as const, value: true } },
+    ];
+    const questions = [callback, name, email];
+
+    expect([...visibleQuestionIds(questions, { callback: 'true' }, sections)]).toEqual(['callback', 'name', 'email']);
+    expect([...visibleQuestionIds(questions, { callback: 'false' }, sections)]).toEqual(['callback']);
+    expect(pruneHidden(questions, { callback: 'false', name: 'Durand' }, sections)).toEqual({ callback: 'false' });
+  });
+
   it('sources autorisées : Oui / Non et choix unique (radio ou liste) seulement', () => {
     expect(canBeConditionSource({ type: 'BOOLEAN', config: {} })).toBe(true);
     expect(canBeConditionSource({ type: 'CHOICE', config: { widget: 'radio', options } })).toBe(true);

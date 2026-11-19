@@ -8,6 +8,7 @@ use FormsCore\DTO\Coerce;
 use FormsCore\DTO\DisplayCondition;
 use FormsCore\DTO\QuestionConfig\ChoiceConfig;
 use FormsCore\Entity\Question;
+use FormsCore\Entity\SurveySection;
 use FormsCore\Enum\ConditionOperator;
 use FormsCore\Enum\QuestionType;
 
@@ -21,6 +22,7 @@ use FormsCore\Enum\QuestionType;
 final class ConditionEvaluatorService
 {
     public const SOURCE_RULE = 'Une condition ne peut porter que sur une question « Oui / Non », à choix unique, « Chiffres » ou « Échelle ».';
+    public const SECTION_ORDER_RULE = 'Une section ne peut dépendre que d\'une question d\'une section précédente.';
 
     /** La question peut-elle servir de source de condition (type et configuration) ? */
     public static function canBeSource(QuestionType $type, array $config): bool
@@ -75,14 +77,8 @@ final class ConditionEvaluatorService
         }
 
         $errors = $this->structureErrors($condition, $source->getType(), $source->getConfig(), $source->getPosition(), $question->getPosition());
-        if ([] !== $errors || QuestionType::Choice !== $source->getType()) {
-            return $errors;
-        }
 
-        $known = ChoiceConfig::fromArray($source->getConfig())->optionIds();
-        $values = \is_array($condition->value) ? $condition->value : [(string) $condition->value];
-
-        return [] === array_diff($values, $known) ? [] : [\sprintf('La condition vise une option qui n\'existe plus dans la question %d.', $source->getPosition())];
+        return [] !== $errors ? $errors : $this->unknownOptionErrors($condition, $source);
     }
 
     /**
@@ -106,8 +102,49 @@ final class ConditionEvaluatorService
     }
 
     /**
+     * Erreurs de forme d'une condition de section : la source doit appartenir à une section précédente.
+     *
+     * @param array<string, mixed> $sourceConfig
+     *
+     * @return list<string>
+     */
+    public function sectionStructureErrors(DisplayCondition $condition, QuestionType $sourceType, array $sourceConfig, int $sourceSectionPosition, int $sectionPosition): array
+    {
+        if ($sourceSectionPosition >= $sectionPosition) {
+            return [self::SECTION_ORDER_RULE];
+        }
+
+        // Ordre déjà contrôlé : positions fictives pour réutiliser les contrôles de type, d'opérateur et de valeur
+        return $this->structureErrors($condition, $sourceType, $sourceConfig, 0, 1);
+    }
+
+    /**
+     * Erreurs d'une condition de section bloquant la validation du questionnaire.
+     *
+     * @param array<string, Question> $questionsById
+     *
+     * @return list<string>
+     */
+    public function sectionDesignErrors(SurveySection $section, array $questionsById): array
+    {
+        $condition = $section->getCondition();
+        if (null === $condition) {
+            return [];
+        }
+
+        $source = $questionsById[$condition->sourceQuestionId] ?? null;
+        if (null === $source) {
+            return ['La question dont dépend cette section n\'existe plus.'];
+        }
+
+        $errors = $this->sectionStructureErrors($condition, $source->getType(), $source->getConfig(), $source->getSection()?->getPosition() ?? 0, $section->getPosition());
+
+        return [] !== $errors ? $errors : $this->unknownOptionErrors($condition, $source);
+    }
+
+    /**
      * Visibilité d'une question, les questions précédentes ayant déjà été évaluées (cascade : une question
-     * dont la source est masquée est masquée).
+     * dont la source est masquée est masquée ; toutes les questions d'une section masquée sont masquées).
      *
      * @param array<string, Question>             $questionsById
      * @param array<string, true>                 $visible       questions précédentes visibles
@@ -115,17 +152,14 @@ final class ConditionEvaluatorService
      */
     public function isVisible(Question $question, array $questionsById, array $visible, array $payloads): bool
     {
-        $condition = $question->getCondition();
-        if (null === $condition) {
-            return true;
-        }
-
-        $source = $questionsById[$condition->sourceQuestionId] ?? null;
-        if (null === $source || !isset($visible[$condition->sourceQuestionId])) {
+        $sectionCondition = $question->getSection()?->getCondition();
+        if (null !== $sectionCondition && !$this->conditionHolds($sectionCondition, $questionsById, $visible, $payloads)) {
             return false;
         }
 
-        return $this->isSatisfied($condition, $source->getType(), $payloads[$condition->sourceQuestionId] ?? null);
+        $condition = $question->getCondition();
+
+        return null === $condition || $this->conditionHolds($condition, $questionsById, $visible, $payloads);
     }
 
     /**
@@ -149,6 +183,34 @@ final class ConditionEvaluatorService
         }
 
         return array_keys($visible);
+    }
+
+    /**
+     * @param array<string, Question>             $questionsById
+     * @param array<string, true>                 $visible
+     * @param array<string, array<string, mixed>> $payloads
+     */
+    private function conditionHolds(DisplayCondition $condition, array $questionsById, array $visible, array $payloads): bool
+    {
+        $source = $questionsById[$condition->sourceQuestionId] ?? null;
+        if (null === $source || !isset($visible[$condition->sourceQuestionId])) {
+            return false;
+        }
+
+        return $this->isSatisfied($condition, $source->getType(), $payloads[$condition->sourceQuestionId] ?? null);
+    }
+
+    /** Valeur visant une option supprimée de la question source (CHOICE). @return list<string> */
+    private function unknownOptionErrors(DisplayCondition $condition, Question $source): array
+    {
+        if (QuestionType::Choice !== $source->getType()) {
+            return [];
+        }
+
+        $known = ChoiceConfig::fromArray($source->getConfig())->optionIds();
+        $values = \is_array($condition->value) ? $condition->value : [(string) $condition->value];
+
+        return [] === array_diff($values, $known) ? [] : [\sprintf('La condition vise une option qui n\'existe plus dans la question %d.', $source->getPosition())];
     }
 
     /**

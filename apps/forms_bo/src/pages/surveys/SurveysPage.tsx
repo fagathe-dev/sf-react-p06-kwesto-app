@@ -26,6 +26,7 @@ import {
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
+import { DuplicateSurveyButton } from './DuplicateSurveyButton';
 
 type Filter = SurveyStatus | 'ALL';
 
@@ -151,6 +152,7 @@ const SurveyCard = ({ item }: { item: SurveyListItem }) => {
               </Rate>
             )}
             <Row $gap={2}>
+              <DuplicateSurveyButton surveyId={survey.id} title={survey.title} size="sm" />
               {survey.status === 'DRAFT' && <Button href={`/surveys/${survey.id}`} $size="sm">Continuer la conception</Button>}
               {survey.status === 'VALIDATED' && <Button href={`/surveys/${survey.id}/recipients`} $size="sm">Configurer la diffusion</Button>}
               {(survey.status === 'ACTIVE' || survey.status === 'CLOSED') && (

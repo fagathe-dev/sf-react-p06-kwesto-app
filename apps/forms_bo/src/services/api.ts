@@ -1,3 +1,4 @@
+import { encodePassword } from '@/utils/secret';
 import type {
   AddRecipientsResponse,
   Asset,
@@ -34,7 +35,8 @@ const q = (path: string, params: Record<string, string | number | boolean | unde
 
 // --- Authentification
 export const login = (email: string, password: string) =>
-  http.post<AuthResponse>('/api/auth/login', { email, password }, { anonymous: true });
+  // Mot de passe encodé en base64 (règle commune à toute route qui reçoit un mot de passe)
+  http.post<AuthResponse>('/api/auth/login', { email, password: encodePassword(password) }, { anonymous: true });
 export const fetchMe = () => http.get<User>('/api/auth/me');
 
 // --- Configuration de la plateforme
@@ -53,7 +55,7 @@ export const duplicateSurvey = (id: string) => http.post<SurveyResponse>(`/api/a
 export const validateSurvey = (id: string) => http.post<SurveyResponse>(`/api/admin/surveys/${id}/validate`);
 
 export interface StructurePayload {
-  sections: Array<Pick<Section, 'id' | 'title' | 'description'>>;
+  sections: Array<Pick<Section, 'id' | 'title' | 'description' | 'displayCondition'>>;
   questions: Array<{
     id: string;
     sectionId: string | null;

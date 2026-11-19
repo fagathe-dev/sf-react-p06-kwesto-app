@@ -19,11 +19,29 @@ interface DisplayConditionEditorProps {
   sources: ConditionSource[];
   /** Toutes les questions numérotées : la source actuelle peut ne plus être éligible (déplacée, type changé). */
   allQuestions: ConditionSource[];
+  /** Numéro de la question, ou de la section (target « section »). */
   number: number;
   issue: string | null;
   disabled: boolean;
   onChange: (condition: DisplayCondition | null) => void;
+  /** Condition d'une question (défaut) ou de toute une section. */
+  target?: 'question' | 'section';
 }
+
+const TEXTS = {
+  question: {
+    toggle: 'Afficher cette question uniquement si…',
+    first: 'La première question est toujours affichée : elle ne peut pas dépendre d\'une autre.',
+    none: 'Aucune question précédente ne peut servir de condition : seules les questions « Oui / Non », à choix unique (boutons radio ou liste déroulante), « Chiffres » et « Échelle » le peuvent.',
+    effect: ' : la question s\'affiche. Sinon elle est masquée, n\'est pas obligatoire et sa réponse n\'est pas enregistrée.',
+  },
+  section: {
+    toggle: 'Afficher cette section uniquement si…',
+    first: 'La première section est toujours affichée : elle ne peut pas dépendre d\'une question.',
+    none: 'Aucune question des sections précédentes ne peut servir de condition : seules les questions « Oui / Non », à choix unique (boutons radio ou liste déroulante), « Chiffres » et « Échelle » le peuvent.',
+    effect: ' : la section s\'affiche. Sinon elle est sautée : ses questions sont masquées, ne sont pas obligatoires et leurs réponses ne sont pas enregistrées.',
+  },
+} as const;
 
 const optionLabel = (label: string, index: number) => label.trim() || `Option ${index + 1}`;
 
@@ -31,18 +49,13 @@ const optionLabel = (label: string, index: number) => label.trim() || `Option ${
  * « Afficher cette question uniquement si… » (specs_fonc §3.5) : une condition par question, sur une
  * question précédente. Masquée, la question n'est pas obligatoire et sa réponse n'est pas enregistrée.
  */
-export const DisplayConditionEditor = ({ condition, sources, allQuestions, number, issue, disabled, onChange }: DisplayConditionEditorProps) => {
+export const DisplayConditionEditor = ({ condition, sources, allQuestions, number, issue, disabled, onChange, target = 'question' }: DisplayConditionEditorProps) => {
   const current = condition ? allQuestions.find((s) => s.question.id === condition.sourceQuestionId) : undefined;
   const firstSource = sources[0];
+  const texts = TEXTS[target];
 
   if (!condition && !firstSource) {
-    return (
-      <Hint>
-        {number === 1
-          ? 'La première question est toujours affichée : elle ne peut pas dépendre d\'une autre.'
-          : 'Aucune question précédente ne peut servir de condition : seules les questions « Oui / Non », à choix unique (boutons radio ou liste déroulante), « Chiffres » et « Échelle » le peuvent.'}
-      </Hint>
-    );
+    return <Hint>{number === 1 ? texts.first : texts.none}</Hint>;
   }
 
   const choices = current && !sources.some((s) => s.question.id === current.question.id) ? [current, ...sources] : sources;
@@ -67,7 +80,7 @@ export const DisplayConditionEditor = ({ condition, sources, allQuestions, numbe
   return (
     <>
       <ToggleField
-        label="Afficher cette question uniquement si…"
+        label={texts.toggle}
         checked={condition !== null}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked && firstSource ? newCondition(firstSource.question) : null)}
@@ -110,7 +123,8 @@ export const DisplayConditionEditor = ({ condition, sources, allQuestions, numbe
             <HelpBox tone="warning">{issue}</HelpBox>
           ) : (
             <Hint>
-              {describeCondition(condition, source, current?.number)} : la question s'affiche. Sinon elle est masquée, n'est pas obligatoire et sa réponse n'est pas enregistrée.
+              {describeCondition(condition, source, current?.number)}
+              {texts.effect}
             </Hint>
           )}
         </>

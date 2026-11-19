@@ -43,7 +43,7 @@ abstract class ApiTestCase extends WebTestCase
     protected function loginAs(User $user): void
     {
         $this->token = null;
-        $response = $this->api('POST', '/api/auth/login', ['email' => $user->getEmail(), 'password' => self::PASSWORD]);
+        $response = $this->api('POST', '/api/auth/login', ['email' => $user->getEmail(), 'password' => base64_encode(self::PASSWORD)]); // mot de passe encodé en base64, comme le front
         self::assertResponseIsSuccessful();
         $this->token = $response['token'];
     }

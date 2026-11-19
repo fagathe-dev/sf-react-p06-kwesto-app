@@ -44,10 +44,23 @@ import {
   type BuilderState,
 } from './builderModel';
 import { AddQuestionButton, AddSectionDivider, InsertSlot } from './AddQuestion';
-import { conditionIssue, dependentsOf, describeCondition, orderViolations, withoutConditionsOn, withoutOrderViolations } from './conditions';
+import {
+  conditionIssue,
+  dependentsOf,
+  describeCondition,
+  eligibleSectionSources,
+  orderViolations,
+  sectionConditionIssue,
+  sectionDependentsOf,
+  sectionOrderViolations,
+  withoutConditionsOn,
+  withoutOrderViolations,
+} from './conditions';
+import { DisplayConditionEditor, type ConditionSource } from './DisplayConditionEditor';
 import { QuestionCard } from './QuestionCard';
 import { SurveyPreview } from './SurveyPreview';
 import { useBuilder, type SaveStatus } from './useBuilder';
+import { DuplicateSurveyButton } from '../DuplicateSurveyButton';
 
 
 const SAVE_LABELS: Record<SaveStatus, string> = {
@@ -156,6 +169,7 @@ export const SurveyBuilderPage = () => {
         subtitle={`${numbers.size} question${numbers.size > 1 ? 's' : ''}${state.sections.length >= 2 ? ` · ${state.sections.length} sections (formulaire en étapes)` : ''}`}
         actions={
           <Row $gap={2}>
+            <DuplicateSurveyButton surveyId={survey.id} title={survey.title} beforeDuplicate={editable ? flush : undefined} />
             <Button $variant="outline" onClick={() => setPreviewOpen(true)} disabled={numbers.size === 0} title={numbers.size === 0 ? 'Ajoutez au moins une question' : undefined}>
               <Icon name="eye-outline" size={18} /> Aperçu
             </Button>
@@ -175,8 +189,8 @@ export const SurveyBuilderPage = () => {
       <Stack $gap={4}>
         {!editable && (
           <HelpBox title="Structure verrouillée">
-            Ce questionnaire a été validé : ses sections et ses questions ne sont plus modifiables, pour garantir l'intégrité des statistiques. Dupliquez-le
-            depuis la liste pour repartir d'une copie modifiable.
+            Ce questionnaire a été validé : ses sections et ses questions ne sont plus modifiables, pour garantir l'intégrité des statistiques. Utilisez
+            « Dupliquer » pour repartir d'une copie modifiable.
           </HelpBox>
         )}
         {saveError && <Alert variant="danger" title="Enregistrement impossible">{saveError}</Alert>}
@@ -370,7 +384,7 @@ const Structure = ({ state, update, hold, numbers, locked, issuesFor }: Structur
     if (next !== state) update(() => next);
 
     // Une question ne peut dépendre que d'une question placée avant elle (specs_fonc §3.5)
-    const broken = orderViolations(next).length;
+    const broken = orderViolations(next).length + sectionOrderViolations(next).length;
     if (broken > 0 && dragSnapshot.current) {
       setPendingMove({ before: dragSnapshot.current, after: next, broken });
       return;
@@ -404,6 +418,19 @@ const Structure = ({ state, update, hold, numbers, locked, issuesFor }: Structur
       conditionSources: allQuestions.slice(0, Math.max(0, index)).filter((s) => canBeConditionSource(s.question)),
       allQuestions,
       conditionIssue: conditionIssue(state, question),
+      conditionSummary: condition ? describeCondition(condition, source?.question, source?.number) : null,
+    };
+  };
+
+  // Section conditionnelle : la source est une question d'une section précédente
+  const sectionConditionProps = (section: BuilderSection) => {
+    const eligible = new Set(eligibleSectionSources(state, section.id).map((q) => q.id));
+    const condition = section.displayCondition;
+    const source = condition ? allQuestions.find((s) => s.question.id === condition.sourceQuestionId) : undefined;
+    return {
+      conditionSources: allQuestions.filter((s) => eligible.has(s.question.id)),
+      allQuestions,
+      conditionIssue: sectionConditionIssue(state, section),
       conditionSummary: condition ? describeCondition(condition, source?.question, source?.number) : null,
     };
   };
@@ -494,8 +521,10 @@ const Structure = ({ state, update, hold, numbers, locked, issuesFor }: Structur
                 count={state.sections.length}
                 locked={locked}
                 issues={issuesFor(section.id)}
+                {...sectionConditionProps(section)}
                 onChange={(patch) => update((current) => ({ ...current, sections: current.sections.map((s) => (s.id === section.id ? { ...s, ...patch } : s)) }))}
-                onRemove={() => update((current) => removeSection(current, section.id))}
+                // Questions rattachées à la section précédente : une section qui dépendait d'elles perd sa condition
+                onRemove={() => update((current) => withoutOrderViolations(removeSection(current, section.id)))}
               >
                 {renderQuestions(section.id)}
               </SectionBlock>
@@ -519,6 +548,10 @@ const Structure = ({ state, update, hold, numbers, locked, issuesFor }: Structur
         message={`« ${toRemove?.label || 'Question sans intitulé'} » sera supprimée. Les questions suivantes seront renumérotées.${
           toRemove && dependentsOf(state, toRemove.id).length > 0
             ? ` ${dependentsOf(state, toRemove.id).length} question(s) en dépendent : leur condition d'affichage sera retirée et elles seront toujours affichées.`
+            : ''
+        }${
+          toRemove && sectionDependentsOf(state, toRemove.id).length > 0
+            ? ` ${sectionDependentsOf(state, toRemove.id).length} section(s) en dépendent : elles seront toujours affichées.`
             : ''
         }`}
         confirmLabel="Supprimer"
@@ -573,17 +606,28 @@ interface SectionBlockProps {
   count: number;
   locked: boolean;
   issues: string[];
+  /** Affichage conditionnel de la section : sources (questions des sections précédentes), problème, résumé. */
+  conditionSources: ConditionSource[];
+  allQuestions: ConditionSource[];
+  conditionIssue: string | null;
+  conditionSummary: string | null;
   onChange: (patch: Partial<BuilderSection>) => void;
   onRemove: () => void;
   children: React.ReactNode;
 }
 
-const SectionBlock = ({ section, index, count, locked, issues, onChange, onRemove, children }: SectionBlockProps) => (
+const SectionBlock = ({ section, index, count, locked, issues, conditionSources, allQuestions, conditionIssue, conditionSummary, onChange, onRemove, children }: SectionBlockProps) => (
   <SectionCard aria-label={`Section ${index + 1}`} $invalid={issues.length > 0}>
     <SectionHead>
       <SectionNumber>
         Section {index + 1} / {count}
       </SectionNumber>
+      {conditionSummary && (
+        <SectionCondition $warning={conditionIssue !== null} title={conditionIssue ?? conditionSummary}>
+          <Icon name={conditionIssue ? 'alert-circle-outline' : 'link-variant'} size={14} />
+          <span>{conditionSummary}</span>
+        </SectionCondition>
+      )}
       {!locked && <IconButton name="trash-can-outline" size="sm" variant="ghost" aria-label={`Supprimer la section ${index + 1}`} onClick={onRemove} />}
     </SectionHead>
     {issues.length > 0 && (
@@ -595,6 +639,18 @@ const SectionBlock = ({ section, index, count, locked, issues, onChange, onRemov
     )}
     <TextField label="Titre de la section" required maxLength={150} value={section.title} disabled={locked} onChange={(e) => onChange({ title: e.target.value })} />
     <TextareaField label="Description (affichée en tête d'étape)" rows={2} value={section.description} disabled={locked} onChange={(e) => onChange({ description: e.target.value })} />
+    <SectionConditionBox>
+      <DisplayConditionEditor
+        target="section"
+        condition={section.displayCondition}
+        sources={conditionSources}
+        allQuestions={allQuestions}
+        number={index + 1}
+        issue={conditionIssue}
+        disabled={locked}
+        onChange={(displayCondition) => onChange({ displayCondition })}
+      />
+    </SectionConditionBox>
     <Stack $gap={3}>{children}</Stack>
     {!locked && count > 1 && <Muted>Supprimer la section rattache ses questions à la section précédente.</Muted>}
   </SectionCard>
@@ -715,6 +771,35 @@ const SectionHead = styled.div`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${({ theme }) => theme.spacing[2]};
+`;
+
+const SectionCondition = styled.span<{ $warning: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[1]};
+  min-width: 0;
+  margin: 0 auto 0 ${({ theme }) => theme.spacing[3]};
+  padding: ${({ theme }) => `2px ${theme.spacing[2]}`};
+  border-radius: ${({ theme }) => theme.radii.pill};
+  background: ${({ theme, $warning }) => ($warning ? theme.colors.danger.subtle : theme.colors.background.surface)};
+  color: ${({ theme, $warning }) => ($warning ? theme.colors.danger.dark : theme.colors.text.body)};
+  font-size: 0.75rem;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const SectionConditionBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing[2]};
+  margin-bottom: ${({ theme }) => theme.spacing[4]};
+  padding: ${({ theme }) => theme.spacing[3]};
+  border-radius: ${({ theme }) => theme.radii.md};
+  background: ${({ theme }) => theme.colors.background.surface};
 `;
 
 const SectionNumber = styled.span`

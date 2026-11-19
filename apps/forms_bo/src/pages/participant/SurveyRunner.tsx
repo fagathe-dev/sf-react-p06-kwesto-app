@@ -69,11 +69,11 @@ export const SurveyRunner = ({
   const estimate = useMemo(() => (ordered.length > 0 ? formatEstimate(estimateSurvey(ordered), survey.showDuration) : null), [survey.showDuration, ordered]);
 
   // Valeurs par défaut (BOOLEAN, RANGE), complétées par ce qui a déjà été saisi (brouillon, fichiers déposés)
-  const [answers, setAnswers] = useState<Answers>(() => pruneHidden(ordered, { ...defaultAnswers(survey.questions), ...initialAnswers }));
+  const [answers, setAnswers] = useState<Answers>(() => pruneHidden(ordered, { ...defaultAnswers(survey.questions), ...initialAnswers }, survey.sections));
   // Reprise : écran qui contient la question où le participant s'était arrêté (sinon le premier)
   const [current, setCurrent] = useState(() => {
     if (!initialQuestionId) return 0;
-    const startFlow = buildFlow(survey, mode, visibleQuestionIds(ordered, answers));
+    const startFlow = buildFlow(survey, mode, visibleQuestionIds(ordered, answers, survey.sections));
     return Math.max(0, startFlow.pages.findIndex((p) => p.questions.some((q) => q.id === initialQuestionId)));
   });
   const [assets, setAssets] = useState<Record<string, Asset[]>>(initialAssets);
@@ -84,7 +84,7 @@ export const SurveyRunner = ({
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Conditions réévaluées à chaque réponse : les questions masquées ne sont ni affichées, ni validées, ni envoyées
-  const visible = useMemo(() => visibleQuestionIds(ordered, answers), [ordered, answers]);
+  const visible = useMemo(() => visibleQuestionIds(ordered, answers, survey.sections), [ordered, answers, survey.sections]);
   const flow = useMemo(() => buildFlow(survey, mode, visible), [survey, mode, visible]);
 
   const index = Math.min(current, flow.pages.length - 1);
@@ -109,8 +109,8 @@ export const SurveyRunner = ({
   }, [answers, pageQuestionId]);
 
   const setAnswer = (questionId: string, value: AnswerValue) => {
-    const next = pruneHidden(ordered, { ...answers, [questionId]: value });
-    const nextVisible = visibleQuestionIds(ordered, next);
+    const next = pruneHidden(ordered, { ...answers, [questionId]: value }, survey.sections);
+    const nextVisible = visibleQuestionIds(ordered, next, survey.sections);
 
     // Une question qui redevient masquée perd sa valeur ; ses fichiers déposés sont retirés
     const hiddenWithFiles = Object.keys(assets).filter((id) => !nextVisible.has(id) && (assets[id]?.length ?? 0) > 0);

@@ -331,6 +331,7 @@ const FileInput = ({ id, describedBy, files: transport, questionId, config, plat
 };
 
 const Field = styled.fieldset<{ $invalid: boolean }>`
+  position: relative;
   margin: 0;
   padding: ${({ theme }) => theme.spacing[5]};
   border: 1px solid ${({ theme, $invalid }) => ($invalid ? theme.colors.danger.base : theme.colors.border.default)};
@@ -341,6 +342,12 @@ const Field = styled.fieldset<{ $invalid: boolean }>`
   & > * + * {
     margin-top: ${({ theme }) => theme.spacing[3]};
   }
+
+  /* La legend flotte (voir Legend) : le contenu suivant passe dessous. */
+  & > legend + * {
+    clear: both;
+    margin-top: 0;
+  }
 `;
 
 const labelStyles = `
@@ -348,8 +355,8 @@ const labelStyles = `
   font-size: 1.05rem;
   font-weight: 600;
   line-height: 1.4;
-  float: none;
   width: 100%;
+  margin: 0;
   padding: 0;
 `;
 
@@ -357,8 +364,11 @@ const Label = styled.label`
   ${labelStyles}
 `;
 
+/* Flottante, la legend n'est plus dessinée sur la bordure du fieldset : elle reste dans le padding de la carte. */
 const Legend = styled.legend`
+  float: left;
   ${labelStyles}
+  margin-bottom: ${({ theme }) => theme.spacing[3]};
 `;
 
 const Number = styled.span`

@@ -59,17 +59,17 @@ class Survey
     private SurveyStatus $status = SurveyStatus::Draft;
 
     /** Présentation du formulaire participant : hors structure, modifiable tant que la campagne n'est pas lancée. */
-    #[ORM\Column(length: 16, enumType: SurveyDisplayMode::class, options: ['default' => 'LIST'])]
+    #[ORM\Column(length: 16, nullable: true, enumType: SurveyDisplayMode::class)]
     #[Groups(['survey.read', 'survey.public'])]
-    private SurveyDisplayMode $displayMode = SurveyDisplayMode::List;
+    private ?SurveyDisplayMode $displayMode = SurveyDisplayMode::List; // null (ligne antérieure) = LIST
 
     /**
      * Option du questionnaire : affiche au participant la durée estimée (calculée par forms_bo). Désactivable
      * pour un questionnaire long, afin de ne pas décourager les participants. Le nombre de questions est toujours affiché.
      */
-    #[ORM\Column(options: ['default' => true])]
+    #[ORM\Column(nullable: true)]
     #[Groups(['survey.read', 'survey.public'])]
-    private bool $showDuration = true;
+    private ?bool $showDuration = true; // null (ligne antérieure) = affichée
 
     #[ORM\Column(nullable: true)]
     #[Groups(['survey.list', 'survey.read', 'survey.public'])]
@@ -202,7 +202,7 @@ class Survey
 
     public function getDisplayMode(): SurveyDisplayMode
     {
-        return $this->displayMode;
+        return $this->displayMode ?? SurveyDisplayMode::List;
     }
 
     public function setDisplayMode(SurveyDisplayMode $displayMode): static
@@ -214,7 +214,7 @@ class Survey
 
     public function isShowDuration(): bool
     {
-        return $this->showDuration;
+        return $this->showDuration ?? true;
     }
 
     public function setShowDuration(bool $showDuration): static
